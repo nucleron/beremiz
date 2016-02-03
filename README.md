@@ -42,11 +42,15 @@ make
 Only needed for CANopen support. Please read CanFestival manual to choose CAN interface other than 'virtual'.
 ```bash
 cd ~/Beremiz
+```
+```bash
 hg clone http://dev.automforge.net/CanFestival-3
 ```
 or
 ```bash
 git clone https://github.com/nucleron/CanFestival-3.git
+```
+```bash
 cd ~/Beremiz/CanFestival-3
 ```
 ```bash
