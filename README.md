@@ -10,53 +10,50 @@ sudo apt-get install python-numpy python-nevow python-matplotlib python-lxml
 
 #Prepare
 
+```bash
 mkdir ~/Beremiz
 cd ~/Beremiz
+```
 
 #Get Source Code
 
 cd ~/Beremiz
-
+```bash
 hg clone http://dev.automforge.net/beremiz
-
 hg clone http://dev.automforge.net/matiec
-
+```
 or
-
+```bash
 git clone https://github.com/nucleron/beremiz.git
-
 git clone https://github.com/nucleron/matiec.git
+```
 
 #Build MatIEC compiler
 
+```bash
 cd ~/Beremiz/matiec
-
 autoreconf
-
 ./configure
-
 make
-
+```
 #Build CanFestival (optional)
 
 Only needed for CANopen support. Please read CanFestival manual to choose CAN interface other than 'virtual'.
-
+```bash
 cd ~/Beremiz
-
 hg clone http://dev.automforge.net/CanFestival-3
-
+```
 or
-
+```bash
 git clone https://github.com/nucleron/CanFestival-3.git
-
 cd ~/Beremiz/CanFestival-3
-
+```
+```bash
 ./configure --can=virtual
-
 make
-
+```
 #Launch Beremiz
-
+```bash
 cd ~/Beremiz/beremiz
-
 python Beremiz.py
+```
