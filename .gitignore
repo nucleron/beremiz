@@ -1,10 +1,18 @@
-.project
+# Backup files #
+################
+*~
 
-syntax: regexp
-^tests/.*/build$
-syntax: regexp
-^.*\.pyc$
-syntax: regexp
-^.*~$
-syntax: regexp
-^.*\.swp$
+# Directory files #
+###################
+*directory
+
+# Compiled source #
+###################
+*.a
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.py[ocd]
+*.so
