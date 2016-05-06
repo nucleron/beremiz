@@ -16,36 +16,38 @@ from YAPLCProto import *
 from targets.typemapping import  LogLevelsCount, TypeTranslator, UnpackDebugBuffer
 from util.ProcessLogger import ProcessLogger
 
+import pdb
+
 class YAPLCObject():
     def __init__(self, libfile, confnodesroot, comportstr):
-        self.TransactionLock = Lock()
-        """
-            WARNING: This is dirty hack to prevent beremiz logger deadlock
-        """
-        self.MatchSwitch = True
-        """
-            WARNING: This is dirty hack to prevent beremiz logger deadlock
-        """
+        
+        self.TransactionLock = Lock()     
         self.PLCStatus = "Disconnected"
         self.libfile = libfile
         self.confnodesroot = confnodesroot
         self.PLCprint = confnodesroot.logger.writeyield
         self._Idxs = []
+        
+        self.TransactionLock.acquire()
         try:
             self.connect( libfile, comportstr, 57600, 20 )
         except Exception,e:
             self.confnodesroot.logger.write_error(str(e)+"\n")
             self.SerialConnection = None
             self.PLCStatus = None #ProjectController is responsible to set "Disconnected" status
+        self.TransactionLock.release()
 
     def connect(self, libfile, comportstr, baud, timeout):
         self.SerialConnection = YAPLCProto( libfile, comportstr, baud, timeout )
 
-    def HandleSerialTransaction(self, transaction):
+    def _HandleSerialTransaction(self, transaction, must_do_lock):
         res = None
         failure=None
-        #
+        #Must acquire the lock
+	if must_do_lock:
+	    self.TransactionLock.acquire()
         if self.SerialConnection is not None:
+	    #Do the job    
             try:
                 self.PLCStatus, res = \
                     self.SerialConnection.HandleTransaction(transaction)
@@ -57,37 +59,36 @@ class YAPLCObject():
                 self.PLCStatus = None #ProjectController is responsible to set "Disconnected" status
             except Exception,e:
                 failure = str(transaction) + str(e)
-        #
+        #Must release the lock    
+        if must_do_lock:
+	    self.TransactionLock.release()
+        return res, failure
+        
+    def HandleSerialTransaction(self, transaction):
+        res = None;
+        failure=None;
+        res, failure = self._HandleSerialTransaction(transaction, True)
         if failure is not None:
-            """
-            WARNING: This is dirty hack to prevent beremiz logger deadlock
-            """
-            if self.MatchSwitch:
-                self.confnodesroot.logger.write_warning(failure+"\n")
-            """
-            WARNING: This is dirty hack to prevent beremiz logger deadlock
-            """
+	    print( failure + "\n" )
+            self.confnodesroot.logger.write_warning(failure+"\n")
         return res
 
     def StartPLC(self):
-        self.TransactionLock.acquire()
         self.HandleSerialTransaction(STARTTransaction())
-        self.TransactionLock.release()
 
     def StopPLC(self):
-        self.TransactionLock.acquire()
         self.HandleSerialTransaction(STOPTransaction())
-        self.TransactionLock.release()
         return True
 
     def NewPLC(self, md5sum, data, extrafiles):
         if self.MatchMD5(md5sum) == False:
+	    res = None;
+            failure=None;
             self.confnodesroot.logger.write_warning(_("Will now upload firmware to PLC.\nThis may take some time, don't close the program.\n"))
             self.TransactionLock.acquire()
             #Will now boot target
-            self.HandleSerialTransaction(BOOTTransaction())
+            res, failure = self._HandleSerialTransaction(BOOTTransaction(), False)
             time.sleep(3)
-            failure = None
             #Close connection
             self.SerialConnection.Close()
             #bootloader command
@@ -136,9 +137,7 @@ class YAPLCObject():
             return self.PLCStatus == "Stopped"
 
     def GetPLCstatus(self):
-        self.TransactionLock.acquire()
         strcounts = self.HandleSerialTransaction(GET_LOGCOUNTSTransaction())
-        self.TransactionLock.release()
         if strcounts is not None and len(strcounts) == LogLevelsCount * 4:
             cstrcounts = ctypes.create_string_buffer(strcounts)
             ccounts = ctypes.cast(cstrcounts, ctypes.POINTER(ctypes.c_uint32))
@@ -148,17 +147,9 @@ class YAPLCObject():
         return self.PLCStatus, counts
 
     def MatchMD5(self, MD5):
-        self.TransactionLock.acquire()
-        """
-            WARNING: This is dirty hack to prevent beremiz logger deadlock
-        """
         self.MatchSwitch = False
         data = self.HandleSerialTransaction(GET_PLCIDTransaction())
         self.MatchSwitch = True
-        """
-            WARNING: This is dirty hack to prevent beremiz logger deadlock
-        """
-        self.TransactionLock.release()
         if data is not None:
             return data[:32] == MD5[:32]
         return False
@@ -191,18 +182,13 @@ class YAPLCObject():
         else:
             buff = ""
             self._Idxs =  []
-
-        self.TransactionLock.acquire()
         self.HandleSerialTransaction(SET_TRACE_VARIABLETransaction(buff))
-        self.TransactionLock.release()
 
     def GetTraceVariables(self):
         """
         Return a list of variables, corresponding to the list of required idx
         """
-        self.TransactionLock.acquire()
         strbuf = self.HandleSerialTransaction(GET_TRACE_VARIABLETransaction())
-        self.TransactionLock.release()
         TraceVariables = []
         if strbuf is not None and len(strbuf) >= 4 and self.PLCStatus == "Started":
             size = len(strbuf) - 4
@@ -217,14 +203,10 @@ class YAPLCObject():
         return self.PLCStatus, TraceVariables
 
     def ResetLogCount(self):
-        self.TransactionLock.acquire()
         self.HandleSerialTransaction(RESET_LOGCOUNTSTransaction())
-        self.TransactionLock.release()
 
     def GetLogMessage(self, level, msgid):
-        self.TransactionLock.acquire()
         strbuf = self.HandleSerialTransaction(GET_LOGMSGTransaction(level, msgid))
-        self.TransactionLock.release()
         if strbuf is not None and len(strbuf) > 12:
             cbuf = ctypes.cast(
                           ctypes.c_char_p(strbuf[:12]),

@@ -29,7 +29,7 @@ def YAPLC_connector_factory(uri, confnodesroot):
 
     servicetype, comportstr = uri.split("://")
 
-    confnodesroot.logger.write("Connecting to:" + comportstr + "\n")
+    confnodesroot.logger.write(_("Connecting to:" + comportstr + "\n"))
 
     from YAPLCObject import YAPLCObject
 

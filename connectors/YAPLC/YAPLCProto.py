@@ -53,12 +53,15 @@ class YAPLCProto:
         return YAPLC_STATUS.get(current_plc_status,"Broken"), res
 
     def Close(self):
-        self.SerialPort.Close()
-        #self.SerialPort = None
-
-    def __del__(self):
         if self.SerialPort:
-            self.SerialPort.Close()
+	    try:
+                self.SerialPort.Close()
+            except Exception, e:
+	        msg = "PLC protocol transaction error : "+str(e)
+	        raise YAPLCProtoError( msg )
+	      
+    def __del__(self):
+        self.Close()
 
 
 class YAPLCTransaction:
