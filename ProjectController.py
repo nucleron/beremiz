@@ -831,16 +831,17 @@ class ProjectController(ConfigTreeNode, PLCControler):
         variable_decl_array = []
         bofs = 0
         for v in self._DbgVariablesList :
-            sz = DebugTypesSize.get(v["type"], 0)
-            variable_decl_array += [
-                "{&(%(C_path)s), "%v+
-                {"EXT":"%(type)s_P_ENUM",
-                 "IN":"%(type)s_P_ENUM",
-                 "MEM":"%(type)s_O_ENUM",
-                 "OUT":"%(type)s_O_ENUM",
-                 "VAR":"%(type)s_ENUM"}[v["vartype"]]%v +
-                 "}"]
-            bofs += sz
+	    if v["type"] in DebugTypesSize:
+	        sz = DebugTypesSize.get(v["type"], 0)
+                variable_decl_array += [
+                    "{&(%(C_path)s), "%v+
+                    {"EXT":"%(type)s_P_ENUM",
+                     "IN":"%(type)s_P_ENUM",
+                     "MEM":"%(type)s_O_ENUM",
+                     "OUT":"%(type)s_O_ENUM",
+                     "VAR":"%(type)s_ENUM"}[v["vartype"]]%v +
+                     "}"]
+                bofs += sz
         debug_code = targets.GetCode("plc_debug.c") % {
            "buffer_size":bofs,
            "programs_declarations":
