@@ -1,6 +1,6 @@
 
-                  <xsd:element name="Generic">
+                  <xsd:element name="yaplc">
                     <xsd:complexType>
-                      %(toolchain_makefile)s
+                      %(toolchain_yaplc)s
                     </xsd:complexType>
                   </xsd:element>

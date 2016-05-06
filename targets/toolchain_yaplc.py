@@ -1,4 +1,4 @@
-import os, re, operator
+import os, sys, platform, re, operator
 from util.ProcessLogger import ProcessLogger
 import hashlib
 
@@ -15,20 +15,23 @@ if os.name == 'nt':
     # to here.
     os.environ["PATH"] = os.getcwd()+';'+os.environ["PATH"]
 
-class toolchain_makefile():
+class toolchain_yaplc():
     def __init__(self, CTRInstance):
         self.CTRInstance = CTRInstance
-        self.md5key = None 
+        self.md5key = None
         self.buildpath = None
+        self.cflags = []
+        self.target_options = []
         self.SetBuildPath(self.CTRInstance._getBuildPath())
 
     def SetBuildPath(self, buildpath):
         if self.buildpath != buildpath:
             self.buildpath = buildpath
             self.md5key = None
+            self.exe = self.CTRInstance.GetProjectName()
 
     def GetBinaryCode(self):
-        return None
+        return os.path.join(self.buildpath, self.exe)
 
     def _GetMD5FileName(self):
         return os.path.join(self.buildpath, "lastbuildPLC.md5")
@@ -67,17 +70,16 @@ class toolchain_makefile():
 
     def build(self):
         srcfiles= []
-        cflags = []
-        wholesrcdata = "" 
+        wholesrcdata = ""
         for Location, CFilesAndCFLAGS, DoCalls in self.CTRInstance.LocationCFilesAndCFLAGS:
             # Get CFiles list to give it to makefile
             for CFile, CFLAGS in CFilesAndCFLAGS:
                 CFileName = os.path.basename(CFile)
                 wholesrcdata += self.concat_deps(CFileName)
                 srcfiles.append(CFileName)
-                if CFLAGS not in cflags:
-                    cflags.append(CFLAGS)
-                        
+                if CFLAGS not in self.cflags:
+                    self.cflags.append(CFLAGS)
+
         oldmd5 = self.md5key
         self.md5key = hashlib.md5(wholesrcdata).hexdigest()
         props = self.CTRInstance.GetProjectProperties()
@@ -92,17 +94,17 @@ class toolchain_makefile():
 
         if oldmd5 != self.md5key :
             target = self.CTRInstance.GetTarget().getcontent()
+
             beremizcommand = {"src": ' '.join(srcfiles),
-                              "cflags": ' '.join(cflags),
+                              "cflags": ' '.join(self.cflags),
                               "md5": self.md5key,
                               "buildpath": self.buildpath
                              }
-            
-            command = [ token % beremizcommand for token in target.getCommand().split(' ')]
 
+            command = [ token % beremizcommand for token in target.getCommand().split(' ')]
+            command += self.target_options
             # Call Makefile to build PLC code and link it with target specific code
-            status, result, err_result = ProcessLogger(self.CTRInstance.logger,
-                                                       command).spin()
+            status, result, err_result = ProcessLogger(self.CTRInstance.logger, command).spin()
             if status :
                 self.md5key = None
                 self.CTRInstance.logger.write_error(_("C compilation failed.\n"))
