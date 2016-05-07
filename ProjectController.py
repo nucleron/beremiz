@@ -797,7 +797,7 @@ class ProjectController(ConfigTreeNode, PLCControler):
                         attrs["C_path"] = '__'.join(parts)
                         if attrs["vartype"] == "FB":
                             config_FBs[tuple(parts)] = attrs["C_path"]
-                    if attrs["vartype"] != "FB":
+                    if attrs["vartype"] != "FB" and attrs["type"] in DebugTypesSize:
                         # Push this dictionnary into result.
                         self._DbgVariablesList.append(attrs)
                         # Fill in IEC<->C translation dicts
@@ -831,17 +831,16 @@ class ProjectController(ConfigTreeNode, PLCControler):
         variable_decl_array = []
         bofs = 0
         for v in self._DbgVariablesList :
-	    if v["type"] in DebugTypesSize:
-	        sz = DebugTypesSize.get(v["type"], 0)
-                variable_decl_array += [
-                    "{&(%(C_path)s), "%v+
-                    {"EXT":"%(type)s_P_ENUM",
-                     "IN":"%(type)s_P_ENUM",
-                     "MEM":"%(type)s_O_ENUM",
-                     "OUT":"%(type)s_O_ENUM",
-                     "VAR":"%(type)s_ENUM"}[v["vartype"]]%v +
-                     "}"]
-                bofs += sz
+	    sz = DebugTypesSize.get(v["type"], 0)
+            variable_decl_array += [
+                "{&(%(C_path)s), "%v+
+                {"EXT":"%(type)s_P_ENUM",
+                 "IN":"%(type)s_P_ENUM",
+                 "MEM":"%(type)s_O_ENUM",
+                 "OUT":"%(type)s_O_ENUM",
+                 "VAR":"%(type)s_ENUM"}[v["vartype"]]%v +
+                 "}"]
+            bofs += sz
         debug_code = targets.GetCode("plc_debug.c") % {
            "buffer_size":bofs,
            "programs_declarations":
