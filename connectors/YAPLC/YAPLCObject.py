@@ -8,7 +8,7 @@ if __name__ == "__main__":
     import os
     import sys
     __builtins__.BMZ_DBG = True
-    append_path = os.path.dirname(os.path.realpath(__file__)) + "/../../"
+    append_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     sys.path.append( append_path )
 
 import ctypes
@@ -21,7 +21,7 @@ import pdb
 class YAPLCObject():
     def __init__(self, libfile, confnodesroot, comportstr):
         
-        self.TransactionLock = Lock()     
+        self.TransactionLock = Lock()
         self.PLCStatus = "Disconnected"
         self.libfile = libfile
         self.confnodesroot = confnodesroot
@@ -106,9 +106,6 @@ class YAPLCObject():
                 cmdhead.append("Loading PLC, please wait...")
                 cmdhead.append("/wait")
             else:
-                """
-                      WARNING: Not tested!!!
-                """
                 #cmdwrap = "xterm -e %s \r"
                 cmdhead.append("xterm")
                 cmdhead.append("-e")
