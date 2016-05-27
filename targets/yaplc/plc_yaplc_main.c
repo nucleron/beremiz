@@ -79,6 +79,43 @@ void fake_start(void)
     while(1);
 }
 
+/*!< TODO: добавть специальную секцию для
+type * name = &(PLC_LOC_BUF(name));
+Чтобы можно было разместть их во flash-памяти.
+*/
+
+#define PLC_LOC_BUF(name)  PLC_LOC_CONCAT(name, _BUF)
+#define PLC_LOC_ADDR(name) PLC_LOC_CONCAT(name, _ADDR)
+#define PLC_LOC_DSC(name)  PLC_LOC_CONCAT(name, _LDSC)
+
+#define __LOCATED_VAR( type, name, lt, lsz, io_proto, ... ) \
+type PLC_LOC_BUF(name);                                     \
+type * name = &(PLC_LOC_BUF(name));                         \
+const uint32_t PLC_LOC_ADDR(name)[] = {__VA_ARGS__};        \
+const plc_loc_dsc_t PLC_LOC_DSC(name) =                     \
+    {                                                       \
+     .v_buf  = (void *)&(PLC_LOC_BUF(name)),                \
+     .v_type = PLC_LOC_TYPE(lt),                            \
+     .v_size = PLC_LOC_SIZE(lsz),                           \
+     .a_size = sizeof(PLC_LOC_ADDR(name))/sizeof(uint32_t), \
+     .a_data = &(PLC_LOC_ADDR(name)[0]),                    \
+     .proto  = io_proto                                     \
+    };
+
+#include "LOCATED_VARIABLES.h"
+#undef __LOCATED_VAR
+
+#define __LOCATED_VAR(type, name, ...) &(PLC_LOC_DSC(name)),
+plc_loc_tbl_t plc_loc_table[] =
+{
+#include "LOCATED_VARIABLES.h"
+};
+#undef __LOCATED_VAR
+
+#define PLC_LOC_TBL_SIZE (sizeof(plc_loc_table)/sizeof(plc_loc_dsc_t *))
+
+uint32_t plc_loc_weigth[PLC_LOC_TBL_SIZE];
+
 #ifndef PLC_MD5
 #error "PLC_MD5 must be defined!!!"
 #endif
@@ -136,9 +173,13 @@ __attribute__ ((section(".plc_app_abi_sec"))) plc_app_abi_t plc_yaplc_app =
     .check_id  = plc_check_md5,
 
     //Must be run on compatible RTE
-    .rte_ver_major = 1,
+    .rte_ver_major = 2,
     .rte_ver_minor = 0,
     .rte_ver_patch = 0,
+    //IO manager interface
+    .l_tab = &plc_loc_table[0],
+    .w_tab = &plc_loc_weigth[0],
+    .l_sz  = PLC_LOC_TBL_SIZE,
 
     //App interface
     .id   = plc_md5,
@@ -296,56 +337,8 @@ int stopPLC(void)
     return 0;
 }
 
-BOOL ix1 = 0;
-BOOL ix2 = 0;
-BOOL ix3 = 0;
-BOOL ix4 = 0;
-BOOL ix5 = 0;
-BOOL ix6 = 0;
-BOOL ix7 = 0;
-BOOL ix8 = 0;
-BOOL * __IX1 = &ix1;
-BOOL * __IX2 = &ix2;
-BOOL * __IX3 = &ix3;
-BOOL * __IX4 = &ix4;
-BOOL * __IX5 = &ix5;
-BOOL * __IX6 = &ix6;
-BOOL * __IX7 = &ix7;
-BOOL * __IX8 = &ix8;
-
-static void PLC_GetInputs(void)
-{
-    ix1 = PLC_RTE->get_din(1);
-    ix2 = PLC_RTE->get_din(2);
-    ix3 = PLC_RTE->get_din(3);
-    ix4 = PLC_RTE->get_din(4);
-    ix5 = PLC_RTE->get_din(5);
-    ix6 = PLC_RTE->get_din(6);
-    ix7 = PLC_RTE->get_din(7);
-    ix8 = PLC_RTE->get_din(8);
-}
-
-BOOL qx1 = 0;
-BOOL qx2 = 0;
-BOOL qx3 = 0;
-BOOL qx4 = 0;
-BOOL * __QX1 = &qx1;
-BOOL * __QX2 = &qx2;
-BOOL * __QX3 = &qx3;
-BOOL * __QX4 = &qx4;
-
-static void PLC_SetOutputs(void)
-{
-    PLC_RTE->set_dout(1, qx1);
-    PLC_RTE->set_dout(2, qx2);
-    PLC_RTE->set_dout(3, qx3);
-    PLC_RTE->set_dout(4, qx4);
-}
-
 void runPLC(void)
 {
-    PLC_GetInputs();
     PLC_GetTime( &__CURRENT_TIME );
     __run();
-    PLC_SetOutputs();
 }
