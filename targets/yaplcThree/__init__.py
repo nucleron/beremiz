@@ -2,18 +2,18 @@ import os, sys, shutil
 from ..toolchain_yaplc import toolchain_yaplc
 
 target_load_addr    = "0x08008000"
-target_runtime_addr = "0x080001ac"
+target_runtime_addr = "0x08000150"
 
 base_dir = os.path.dirname(os.path.realpath(__file__)) + "/../../.."
 #base_dir = os.path.split(sys.path[0])[0]
-libopencm3_dir = os.path.join(base_dir, "libopencm3")
+#libopencm3_dir = os.path.join(base_dir, "libopencm3")
 
-class yaplc_target(toolchain_yaplc):
+class yaplcThree_target(toolchain_yaplc):
     def __init__(self, CTRInstance):
         toolchain_yaplc.__init__(self, CTRInstance)
         #
-        libopencm3_inc_dir = os.path.join(libopencm3_dir, "include")
-        self.cflags.append("-I\""+libopencm3_inc_dir+"\"")
+        #libopencm3_inc_dir = os.path.join(libopencm3_dir, "include")
+        #self.cflags.append("-I\""+libopencm3_inc_dir+"\"")
         #Needed for plc_main.c
         plc_yaplc_dir = os.path.join(base_dir, "yaplc")
         plc_src_dir   = os.path.join(plc_yaplc_dir, "src")
@@ -21,7 +21,7 @@ class yaplc_target(toolchain_yaplc):
         self.cflags.append("-I\"" + plc_rt_dir + "\"")
         self.cflags.append("-DPLC_RTE_ADDR=" + target_runtime_addr)
         #Add linker script to ldflags
-        plc_linker_script = os.path.join(plc_rt_dir, "bsp/nuc-227-dev/stm32f4disco-app.ld")
+        plc_linker_script = os.path.join(plc_rt_dir, "bsp/nuc-242/stm32f103xC-app.ld")
         #Target specific build options
         self.target_options.append("LDFLAGS=-Wl,-script=\""+plc_linker_script+"\" ")
         self.target_options.append("OUTPUT="+self.exe)
@@ -30,7 +30,7 @@ class yaplc_target(toolchain_yaplc):
         #Copy make file
         beremiz_dir = os.path.join(base_dir, "beremiz")
         tagtets_dir = os.path.join(beremiz_dir, "targets")
-        yaplc_target_dir = os.path.join(tagtets_dir, "yaplc")
+        yaplc_target_dir = os.path.join(tagtets_dir, "yaplcThree")
         shutil.copy(os.path.join(yaplc_target_dir, "Makefile"), os.path.join(self.buildpath, "Makefile"))
 
         #Build project

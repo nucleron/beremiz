@@ -1,0 +1,6 @@
+
+                  <xsd:element name="yaplcThree">
+                    <xsd:complexType>
+                      %(toolchain_yaplc)s
+                    </xsd:complexType>
+                  </xsd:element>
