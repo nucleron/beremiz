@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#This file is part of PLCOpenEditor, a library implementing an IEC 61131-3 editor
-#based on the plcopen standard. 
+# This file is part of Beremiz, a Integrated Development Environment for
+# programming IEC 61131-3 automates supporting plcopen standard and CanFestival.
 #
-#Copyright (C) 2007: Edouard TISSERANT and Laurent BESSARD
+# Copyright (C) 2007: Edouard TISSERANT and Laurent BESSARD
 #
-#See COPYING file for copyrights details.
+# See COPYING file for copyrights details.
 #
-#This library is free software; you can redistribute it and/or
-#modify it under the terms of the GNU General Public
-#License as published by the Free Software Foundation; either
-#version 2.1 of the License, or (at your option) any later version.
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
 #
-#This library is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-#General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#You should have received a copy of the GNU General Public
-#License along with this library; if not, write to the Free Software
-#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import wx
 
@@ -70,7 +70,7 @@ class SFC_Step(Graphic_Element, DebugDataConsumer):
         if self.Output is not None:
             self.Output.Flush()
             self.Output = None
-        if self.Output is not None:
+        if self.Action is not None:
             self.Action.Flush()
             self.Action = None
     
@@ -653,8 +653,10 @@ class SFC_Transition(Graphic_Element, DebugDataConsumer):
     # Returns the RedrawRect
     def GetRedrawRect(self, movex = 0, movey = 0):
         rect = Graphic_Element.GetRedrawRect(self, movex, movey)
-        rect = rect.Union(self.Input.GetRedrawRect(movex, movey))
-        rect = rect.Union(self.Output.GetRedrawRect(movex, movey))
+        if self.Input:
+            rect = rect.Union(self.Input.GetRedrawRect(movex, movey))
+        if self.Output:
+            rect = rect.Union(self.Output.GetRedrawRect(movex, movey))
         if movex != 0 or movey != 0:
             if self.Input.IsConnected():
                 rect = rect.Union(self.Input.GetConnectedRedrawRect(movex, movey))
@@ -1547,7 +1549,8 @@ class SFC_Jump(Graphic_Element):
     # Returns the RedrawRect
     def GetRedrawRect(self, movex = 0, movey = 0):
         rect = Graphic_Element.GetRedrawRect(self, movex, movey)
-        rect = rect.Union(self.Input.GetRedrawRect(movex, movey))
+        if self.Input:
+            rect = rect.Union(self.Input.GetRedrawRect(movex, movey))
         if movex != 0 or movey != 0:
             if self.Input.IsConnected():
                 rect = rect.Union(self.Input.GetConnectedRedrawRect(movex, movey))
@@ -1824,7 +1827,8 @@ class SFC_ActionBlock(Graphic_Element):
     # Returns the RedrawRect
     def GetRedrawRect(self, movex = 0, movey = 0):
         rect = Graphic_Element.GetRedrawRect(self, movex, movey)
-        rect = rect.Union(self.Input.GetRedrawRect(movex, movey))
+        if self.Input:
+            rect = rect.Union(self.Input.GetRedrawRect(movex, movey))
         if movex != 0 or movey != 0:
             if self.Input.IsConnected():
                 rect = rect.Union(self.Input.GetConnectedRedrawRect(movex, movey))

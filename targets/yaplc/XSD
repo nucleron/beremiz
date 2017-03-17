@@ -1,6 +1,0 @@
-
-                  <xsd:element name="yaplc">
-                    <xsd:complexType>
-                      %(toolchain_yaplc)s
-                    </xsd:complexType>
-                  </xsd:element>
