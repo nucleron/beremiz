@@ -2,6 +2,7 @@
 ../canfestival/SlaveEditor.py
 ../canfestival/config_utils.py
 ../canfestival/NetworkEditor.py
+../BeremizIDE.py
 ../dialogs/LDElementDialog.py
 ../dialogs/ForceVariableDialog.py
 ../dialogs/SearchInProjectDialog.py
@@ -42,7 +43,6 @@
 ../targets/Xenomai/__init__.py
 ../targets/Xenomai/XSD
 ../targets/XSD_toolchain_gcc
-../targets/PLC/XSD
 ../targets/__init__.py
 ../targets/toolchain_gcc.py
 ../targets/toolchain_makefile.py
@@ -75,6 +75,7 @@
 ../controls/SearchResultPanel.py
 ../controls/PouInstanceVariablesPanel.py
 ../controls/CustomTable.py
+../controls/EnhancedStatusBar.py
 ../controls/LibraryPanel.py
 ../controls/CustomToolTip.py
 ../controls/LogViewer.py
@@ -116,5 +117,3 @@
 ../IDEFrame.py
 ../PLCGenerator.py
 ../Beremiz_service.py
-../plcopen/Additional_Function_Blocks.xml
-../plcopen/Standard_Function_Blocks.xml

@@ -125,10 +125,13 @@ def TestTextElement(text, criteria):
     test_result = []
     result = criteria["pattern"].search(text)
     while result is not None:
+        prev_pos=result.endpos        
         start = TextLenInRowColumn(text[:result.start()])
         end = TextLenInRowColumn(text[:result.end() - 1])
         test_result.append((start, end, "\n".join(lines[start[0]:end[0] + 1])))
         result = criteria["pattern"].search(text, result.end())
+        if result is not None and prev_pos==result.endpos:
+            break
     return test_result
 
 def TextMatched(str1, str2):
@@ -2416,7 +2419,7 @@ def extractValues(values):
 
 cls = PLCOpenParser.GetElementClass("arrayValue", "value")
 if cls:
-    arrayValue_model = re.compile("([0-9]*)\((.*)\)$")
+    arrayValue_model = re.compile("([0-9]+)\((.*)\)$")
     
     def setvalue(self, value):
         elements = []

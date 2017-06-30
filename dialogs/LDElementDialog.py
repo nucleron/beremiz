@@ -5,6 +5,7 @@
 # programming IEC 61131-3 automates supporting plcopen standard and CanFestival.
 #
 # Copyright (C) 2007: Edouard TISSERANT and Laurent BESSARD
+# Copyright (C) 2017: Andrey Skvortsov <andrej.skvortzov@gmail.com>
 #
 # See COPYING file for copyrights details.
 #
@@ -50,7 +51,6 @@ class LDElementDialog(BlockPreviewDialog):
         @param type: Type of LD element ('contact or 'coil')
         """
         BlockPreviewDialog.__init__(self, parent, controller, tagname, 
-              size=wx.Size(350, 320 if type == "contact" else 380),
               title=(_("Edit Contact Values")
                      if type == "contact"
                      else _("Edit Coil Values")))
@@ -94,6 +94,8 @@ class LDElementDialog(BlockPreviewDialog):
         self.ElementVariable = wx.ComboBox(self, style=wx.CB_SORT)
         self.Bind(wx.EVT_COMBOBOX, self.OnVariableChanged, 
                   self.ElementVariable)
+        self.Bind(wx.EVT_TEXT, self.OnVariableChanged, 
+                  self.ElementVariable)        
         self.LeftGridSizer.AddWindow(self.ElementVariable, border=5,
              flag=wx.GROW|wx.TOP)
         
@@ -118,6 +120,7 @@ class LDElementDialog(BlockPreviewDialog):
                value_type == "BOOL":
                 self.ElementVariable.Append(name)
         
+        self.Fit()
         # Normal radio button is default control having keyboard focus
         self.ModifierRadioButtons[element_modifiers[0]].SetFocus()
     
@@ -184,11 +187,21 @@ class LDElementDialog(BlockPreviewDialog):
         Refresh preview panel of graphic element
         Override BlockPreviewDialog function
         """
+        value = self.ElementVariable.GetValue()
+        
         # Set graphic element displayed, creating a LD element
         self.Element = self.ElementClass(
                 self.Preview, 
                 self.GetElementModifier(),
-                self.ElementVariable.GetValue())
+                value)
+
+        button = self.ButtonSizer.GetAffirmativeButton()
+        button.Enable(value != "")
         
         # Call BlockPreviewDialog function
         BlockPreviewDialog.RefreshPreview(self)
+        
+    def OnOK(self, event):
+        if self.ElementVariable.GetValue() != "":
+            self.EndModal(wx.ID_OK)
+
