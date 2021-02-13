@@ -23,11 +23,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
-from graphics.GraphicCommons import LEFTRAIL, RIGHTRAIL, LD_LINE_SIZE
+from graphics.GraphicCommons import LEFTRAIL, RIGHTRAIL
 from graphics.LD_Objects import LD_PowerRail
-from BlockPreviewDialog import BlockPreviewDialog
+from dialogs.BlockPreviewDialog import BlockPreviewDialog
 
 # -------------------------------------------------------------------------------
 #                    Set Ladder Power Rail Parameters Dialog
@@ -153,7 +155,7 @@ class LDPowerRailDialog(BlockPreviewDialog):
         self.RefreshPreview()
         event.Skip()
 
-    def RefreshPreview(self):
+    def DrawPreview(self):
         """
         Refresh preview panel of graphic element
         Override BlockPreviewDialog function
@@ -164,5 +166,4 @@ class LDPowerRailDialog(BlockPreviewDialog):
                                     self.GetPowerRailType(),
                                     connectors=self.PinNumber.GetValue())
 
-        # Call BlockPreviewDialog function
-        BlockPreviewDialog.RefreshPreview(self)
+        return BlockPreviewDialog.DrawPreview(self)

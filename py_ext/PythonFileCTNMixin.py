@@ -23,15 +23,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import os
 import re
-from lxml import etree
-import util.paths as paths
+from builtins import str as text
 
+import util.paths as paths
 from xmlclass import GenerateParserFromXSD
 
 from CodeFileTreeNode import CodeFile
-from PythonEditor import PythonEditor
+from py_ext.PythonEditor import PythonEditor
+
+
 
 
 class PythonFileCTNMixin(CodeFile):
@@ -61,8 +65,8 @@ class PythonFileCTNMixin(CodeFile):
                 'xmlns="http://www.w3.org/2001/XMLSchema"',
                 'xmlns:xhtml="http://www.w3.org/1999/xhtml"')
             for cre, repl in [
-                    (re.compile("(?<!<xhtml:p>)(?:<!\[CDATA\[)"), "<xhtml:p><![CDATA["),
-                    (re.compile("(?:]]>)(?!</xhtml:p>)"), "]]></xhtml:p>")]:
+                    (re.compile(r"(?<!<xhtml:p>)(?:<!\[CDATA\[)"), "<xhtml:p><![CDATA["),
+                    (re.compile(r"(?:]]>)(?!</xhtml:p>)"), "]]></xhtml:p>")]:
                 pythonfile_xml = cre.sub(repl, pythonfile_xml)
 
             try:
@@ -72,8 +76,8 @@ class PythonFileCTNMixin(CodeFile):
                     os.remove(filepath)
                     self.CreateCodeFileBuffer(False)
                     self.OnCTNSave()
-            except Exception, exc:
-                error = unicode(exc)
+            except Exception as exc:
+                error = text(exc)
 
             if error is not None:
                 self.GetCTRoot().logger.write_error(
@@ -93,27 +97,60 @@ class PythonFileCTNMixin(CodeFile):
                getattr(self.CodeFile, section).getanyText() + "\n" + \
                self.PostSectionsTexts.get(section, "")
 
+    def CTNGlobalInstances(self):
+        variables = self.CodeFileVariables(self.CodeFile)
+        ret = [(variable.getname(),
+                variable.gettype(),
+                variable.getinitial())
+               for variable in variables]
+        location_str = "_".join(map(str, self.GetCurrentLocation()))
+        ret.append(("On_"+location_str+"_Change", "python_poll", ""))
+        return ret
+
+    @staticmethod
+    def GetVarOnChangeContent(var):
+        """
+        returns given variable onchange field
+        function is meant to allow customization 
+        """
+        return var.getonchange()
+
     def CTNGenerate_C(self, buildpath, locations):
         # location string for that CTN
-        location_str = "_".join(map(lambda x: str(x),
-                                self.GetCurrentLocation()))
+        location_str = "_".join(map(str, self.GetCurrentLocation()))
         configname = self.GetCTRoot().GetProjectConfigNames()[0]
 
+        def _onchangecode(var):
+            result = []
+            for onchangecall in self.GetVarOnChangeContent(var).split(','):
+                onchangecall = onchangecall.strip()
+                if onchangecall:
+                    result.append(onchangecall + "('" + var.getname() + "')")
+            return result
+
+
+        def _onchange(var):
+            content = self.GetVarOnChangeContent(var)
+            return repr(content) if content else None
+
         pyextname = self.CTNName()
-        varinfos = map(lambda variable: {
-            "name": variable.getname(),
-            "desc": repr(variable.getdesc()),
-            "onchangecode": '"' + variable.getonchange() +
-            "('" + variable.getname() + "')\""
-            if variable.getonchange() else '""',
-            "onchange": repr(variable.getonchange())
-            if variable.getonchange() else None,
-            "opts": repr(variable.getopts()),
-            "configname": configname.upper(),
-            "uppername": variable.getname().upper(),
-            "IECtype": variable.gettype(),
-            "pyextname": pyextname},
-                       self.CodeFile.variables.variable)
+        varinfos = map(
+            lambda variable: {
+                "name": variable.getname(),
+                "desc": repr(variable.getdesc()),
+                "onchangecode": _onchangecode(variable),
+                "onchange": _onchange(variable),
+                "opts": repr(variable.getopts()),
+                "configname": configname.upper(),
+                "uppername": variable.getname().upper(),
+                "IECtype": self.GetCTRoot().GetBaseType(variable.gettype()),
+                "initial": repr(variable.getinitial()),
+                "pyextname": pyextname
+            },
+            self.CodeFile.variables.variable)
+
+        onchange_var_count = len([None for varinfo in varinfos if varinfo["onchange"]])
+
         # python side PLC global variables access stub
         globalstubs = "\n".join([
             """\
@@ -128,11 +165,25 @@ _PySafeSetPLCGlob_%(name)s.argtypes = [ctypes.POINTER(_%(name)s_ctype)]
 _%(pyextname)sGlobalsDesc.append((
     "%(name)s",
     "%(IECtype)s",
+    %(initial)s,
     %(desc)s,
     %(onchange)s,
     %(opts)s))
-""" % varinfo for varinfo in varinfos])
+""" % varinfo + ("""
+_PyOnChangeCount_%(name)s = ctypes.c_uint.in_dll(PLCBinary,"__%(name)s_onchange_count")
+_PyOnChangeFirst_%(name)s = _%(name)s_ctype.in_dll(PLCBinary,"__%(name)s_onchange_firstval")
+_PyOnChangeLast_%(name)s = _%(name)s_ctype.in_dll(PLCBinary,"__%(name)s_onchange_lastval")
+""" % varinfo if varinfo["onchange"] else "") for varinfo in varinfos])
 
+        on_change_func_body = "\n".join(["""
+    if _PyOnChangeCount_%(name)s.value > 0:
+        # %(name)s
+        try:""" % varinfo + """
+            """ + """
+            """.join(varinfo['onchangecode'])+"""
+        except Exception as e:
+            errors.append("%(name)s: "+str(e))
+""" % varinfo for varinfo in varinfos if varinfo["onchange"]])
         # Runtime calls (start, stop, init, and cleanup)
         rtcalls = ""
         for section in self.SECTIONS_NAMES:
@@ -147,6 +198,16 @@ _%(pyextname)sGlobalsDesc.append((
 
         globalsection = self.GetSection("globals")
 
+        loc_dict = {
+            "pyextname": pyextname,
+            "globalstubs": globalstubs,
+            "globalsection": globalsection,
+            "rtcalls": rtcalls,
+            "location_str": location_str,
+            "on_change_func_body":on_change_func_body,
+            "onchange_var_count": onchange_var_count
+        }
+
         PyFileContent = """\
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
@@ -154,8 +215,13 @@ _%(pyextname)sGlobalsDesc.append((
 ##
 
 ## Code for PLC global variable access
-from targets.typemapping import TypeTranslator
+from runtime.typemapping import TypeTranslator
 import ctypes
+
+_PySafeGetChanges_%(pyextname)s = PLCBinary.PySafeGetChanges_%(location_str)s
+_PySafeGetChanges_%(pyextname)s.restype = None
+_PySafeGetChanges_%(pyextname)s.argtypes = None
+
 _%(pyextname)sGlobalsDesc = []
 __ext_name__ = "%(pyextname)s"
 PLCGlobalsDesc.append(( "%(pyextname)s" , _%(pyextname)sGlobalsDesc ))
@@ -167,9 +233,16 @@ PLCGlobalsDesc.append(( "%(pyextname)s" , _%(pyextname)sGlobalsDesc ))
 ## Beremiz python runtime calls
 %(rtcalls)s
 
+def On_%(pyextname)s_Change():
+    _PySafeGetChanges_%(pyextname)s()
+    errors = []
+%(on_change_func_body)s
+    if len(errors)>0 :
+        raise Exception("Exception in %(pyextname)s OnChange call:\\\\n" + "\\\\n".join(errors))
+
 del __ext_name__
 
-""" % locals()
+""" % loc_dict
 
         # write generated content to python file
         runtimefile_path = os.path.join(buildpath,
@@ -202,7 +275,12 @@ void __SafeSetPLCGlob_%(name)s(IEC_%(IECtype)s *value){
 """
 
         vardeconchangefmt = """\
-PYTHON_POLL* __%(name)s_notifier;
+unsigned int __%(name)s_rbuffer_written = 0;
+IEC_%(IECtype)s __%(name)s_rbuffer_firstval;
+IEC_%(IECtype)s __%(name)s_rbuffer_lastval;
+unsigned int __%(name)s_onchange_count = 0;
+IEC_%(IECtype)s __%(name)s_onchange_firstval;
+IEC_%(IECtype)s __%(name)s_onchange_lastval;
 """
 
         varretfmt = """\
@@ -224,17 +302,28 @@ PYTHON_POLL* __%(name)s_notifier;
         varpubonchangefmt = """\
     if(!AtomicCompareExchange(&__%(name)s_rlock, 0, 1)){
         IEC_%(IECtype)s tmp = __GET_VAR(%(configname)s__%(uppername)s);
-        if(__%(name)s_rbuffer != tmp){
-            __%(name)s_rbuffer = %(configname)s__%(uppername)s.value;
-            PYTHON_POLL_body__(__%(name)s_notifier);
+        if(NE_%(IECtype)s(1, NULL, __%(name)s_rbuffer, tmp)){
+            if(__%(name)s_rbuffer_written == 0);
+                __%(name)s_rbuffer_firstval = __%(name)s_rbuffer;
+            __%(name)s_rbuffer_lastval = tmp;
+            __%(name)s_rbuffer = tmp;
+            /* count one more change */
+            __%(name)s_rbuffer_written += 1;
+            some_change_found = 1;
         }
         AtomicCompareExchange((long*)&__%(name)s_rlock, 1, 0);
     }
 """
-        varinitonchangefmt = """\
-    __%(name)s_notifier = __GET_GLOBAL_ON%(uppername)sCHANGE();
-    __SET_VAR(__%(name)s_notifier->,TRIG,,__BOOL_LITERAL(TRUE));
-    __SET_VAR(__%(name)s_notifier->,CODE,,__STRING_LITERAL(%(onchangelen)d,%(onchangecode)s));
+
+        varcollectchangefmt = """\
+    while(AtomicCompareExchange(&__%(name)s_rlock, 0, 1));
+    __%(name)s_onchange_count = __%(name)s_rbuffer_written;
+    __%(name)s_onchange_firstval = __%(name)s_rbuffer_firstval;
+    __%(name)s_onchange_lastval = __%(name)s_rbuffer_lastval;
+    /* mark variable as unchanged */
+    __%(name)s_rbuffer_written = 0;
+    AtomicCompareExchange((long*)&__%(name)s_rlock, 1, 0);
+
 """
         vardec = "\n".join([(vardecfmt + vardeconchangefmt
                              if varinfo["onchange"] else vardecfmt) % varinfo
@@ -243,9 +332,21 @@ PYTHON_POLL* __%(name)s_notifier;
         varpub = "\n".join([(varpubonchangefmt if varinfo["onchange"] else
                              varpubfmt) % varinfo
                             for varinfo in varinfos])
-        varinit = "\n".join([varinitonchangefmt % dict(
-                                onchangelen=len(varinfo["onchangecode"]), **varinfo)
-                            for varinfo in varinfos if varinfo["onchange"]])
+        varcollectchange = "\n".join([varcollectchangefmt % varinfo
+                             for varinfo in varinfos if varinfo["onchange"]])
+
+        pysafe_pypoll_code = "On_"+pyextname+"_Change()"
+
+        loc_dict = {
+            "vardec": vardec,
+            "varret": varret,
+            "varpub": varpub,
+            "location_str": location_str,
+            "pysafe_pypoll_code": '"'+pysafe_pypoll_code+'"',
+            "pysafe_pypoll_code_len": len(pysafe_pypoll_code),
+            "varcollectchange": varcollectchange,
+            "onchange_var_count": onchange_var_count
+        }
 
         # TODO : use config name obtained from model instead of default
         # "config.h". User cannot change config name, but project imported
@@ -260,12 +361,17 @@ PYTHON_POLL* __%(name)s_notifier;
 #include "config.h"
 #include "beremiz.h"
 
+PYTHON_POLL* __%(location_str)s_notifier;
+
 /* User variables reference */
 %(vardec)s
 
 /* Beremiz confnode functions */
 int __init_%(location_str)s(int argc,char **argv){
-%(varinit)s
+    __%(location_str)s_notifier = __GET_GLOBAL_ON_%(location_str)s_CHANGE();
+    __SET_VAR(__%(location_str)s_notifier->,TRIG,,__BOOL_LITERAL(TRUE));
+    __SET_VAR(__%(location_str)s_notifier->,CODE,,__STRING_LITERAL(%(pysafe_pypoll_code_len)d,%(pysafe_pypoll_code)s));
+
     return 0;
 }
 
@@ -276,10 +382,23 @@ void __retrieve_%(location_str)s(void){
 %(varret)s
 }
 
+static int passing_changes_to_python = 0;
 void __publish_%(location_str)s(void){
+    int some_change_found = 0;
 %(varpub)s
+    passing_changes_to_python |= some_change_found;
+    // call python part if there was at least a change
+    if(passing_changes_to_python){
+        PYTHON_POLL_body__(__%(location_str)s_notifier);
+        passing_changes_to_python &= !(__GET_VAR(__%(location_str)s_notifier->ACK,));
+    }
 }
-""" % locals()
+
+void* PySafeGetChanges_%(location_str)s(void){
+%(varcollectchange)s
+}
+
+""" % loc_dict
 
         Gen_PyCfile_path = os.path.join(buildpath, "PyCFile_%s.c" % location_str)
         pycfile = open(Gen_PyCfile_path, 'w')
@@ -292,4 +411,4 @@ void __publish_%(location_str)s(void){
         return ([(Gen_PyCfile_path, matiec_CFLAGS)],
                 "",
                 True,
-                ("runtime_%s.py" % location_str, file(runtimefile_path, "rb")))
+                ("runtime_%s.py" % location_str, open(runtimefile_path, "rb")))

@@ -26,10 +26,12 @@
 Minimal tab controller for a simple text editor
 """
 
+
+from __future__ import absolute_import
 import os
 
 
-class MiniTextControler:
+class MiniTextControler(object):
 
     def __init__(self, filepath, controller):
         self.FilePath = filepath

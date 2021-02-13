@@ -23,11 +23,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from graphics.GraphicCommons import CONNECTOR, CONTINUATION
 from graphics.FBD_Objects import FBD_Connector
-from BlockPreviewDialog import BlockPreviewDialog
+from dialogs.BlockPreviewDialog import BlockPreviewDialog
 
 # -------------------------------------------------------------------------------
 #                       Set Connection Parameters Dialog
@@ -104,7 +106,7 @@ class ConnectionDialog(BlockPreviewDialog):
         else:
             self.ConnectionName.ChangeValue(
                 controller.GenerateNewName(
-                        tagname, None, "Connection%d", 0))
+                    tagname, None, "Connection%d", 0))
         self.Fit()
 
         # Connector radio button is default control having keyboard focus
@@ -208,7 +210,7 @@ class ConnectionDialog(BlockPreviewDialog):
         self.RefreshPreview()
         event.Skip()
 
-    def RefreshPreview(self):
+    def DrawPreview(self):
         """
         Refresh preview panel of graphic element
         Override BlockPreviewDialog function
@@ -219,4 +221,4 @@ class ConnectionDialog(BlockPreviewDialog):
                                      self.ConnectionName.GetValue())
 
         # Call BlockPreviewDialog function
-        BlockPreviewDialog.RefreshPreview(self)
+        BlockPreviewDialog.DrawPreview(self)

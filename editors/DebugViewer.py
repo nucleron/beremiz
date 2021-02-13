@@ -22,6 +22,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 from threading import Lock, Timer
 from time import time as gettime
 
@@ -35,7 +37,7 @@ DEBUG_REFRESH_LOCK = Lock()  # Common refresh lock for all debug viewers
 # -------------------------------------------------------------------------------
 
 
-class DebugViewer:
+class DebugViewer(object):
     """
     Class that implements common behavior of every viewers able to display debug
     values
@@ -128,7 +130,7 @@ class DebugViewer:
         @param inhibit: Inhibit flag
         """
         # Inhibit every data consumers in list
-        for consumer, iec_path in self.DataConsumers.iteritems():
+        for consumer, _iec_path in self.DataConsumers.iteritems():
             consumer.Inhibit(inhibit)
 
         # Save inhibit flag
@@ -148,7 +150,7 @@ class DebugViewer:
 
         # Subscribe data consumer to DataProducer
         result = self.DataProducer.SubscribeDebugIECVariable(
-                        iec_path, consumer, buffer_list)
+            iec_path, consumer, buffer_list)
         if result is not None and consumer != self:
 
             # Store data consumer if successfully subscribed and inform
@@ -168,8 +170,7 @@ class DebugViewer:
 
         # Unsubscribe consumer from DataProducer
         if iec_path is not None:
-            self.DataProducer.UnsubscribeDebugIECVariable(
-                        iec_path, consumer)
+            self.DataProducer.UnsubscribeDebugIECVariable(iec_path, consumer)
 
     def SubscribeAllDataConsumers(self):
         """
@@ -192,8 +193,7 @@ class DebugViewer:
 
             # Unsubscribe all data consumers in list
             for consumer, iec_path in self.DataConsumers.iteritems():
-                self.DataProducer.UnsubscribeDebugIECVariable(
-                            iec_path, consumer)
+                self.DataProducer.UnsubscribeDebugIECVariable(iec_path, consumer)
 
         self.DataConsumers = {}
 
@@ -207,7 +207,7 @@ class DebugViewer:
 
             # Search for variable informations in project compilation files
             data_type = self.DataProducer.GetDebugIECVariableType(
-                            iec_path.upper())
+                iec_path.upper())
             if data_type is not None:
                 return data_type
 

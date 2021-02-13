@@ -22,11 +22,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import string
+
+from __future__ import absolute_import
 import re
-from plcopen import LoadProject
 from collections import OrderedDict
-from definitions import *
+from functools import reduce
+
+from plcopen.plcopen import LoadProject
+from plcopen.definitions import *
 
 TypeHierarchy = dict(TypeHierarchy_list)
 
@@ -50,7 +53,7 @@ def GetSubTypes(type):
     """
     Returns list of all types that correspont to the ANY* meta type
     """
-    return [typename for typename, parenttype in TypeHierarchy.items() if not typename.startswith("ANY") and IsOfType(typename, type)]
+    return [typename for typename, _parenttype in TypeHierarchy.items() if not typename.startswith("ANY") and IsOfType(typename, type)]
 
 
 DataTypeRange = dict(DataTypeRange_list)
@@ -101,7 +104,10 @@ def csv_file_to_table(file):
     """
     take a .csv file and translate it it a "csv_table"
     """
-    return [map(string.strip, line.split(';')) for line in file.xreadlines()]
+    table = [[column.strip()
+              for column in line.split(';')]
+             for line in file.readlines()]
+    return table
 
 
 def find_section(section_name, table):
@@ -110,7 +116,7 @@ def find_section(section_name, table):
     return the matching row without first field
     """
     fields = [None]
-    while(fields[0] != section_name):
+    while fields[0] != section_name:
         fields = table.pop(0)
     return fields[1:]
 
@@ -123,7 +129,7 @@ def get_standard_funtions_input_variables(table):
     variables = find_section("Standard_functions_variables_types", table)
     standard_funtions_input_variables = {}
     fields = [True, True]
-    while(fields[1]):
+    while fields[1]:
         fields = table.pop(0)
         variable_from_csv = dict([(champ, val) for champ, val in zip(variables, fields[1:]) if champ != ''])
         standard_funtions_input_variables[variable_from_csv['name']] = variable_from_csv['type']
@@ -177,9 +183,9 @@ def get_standard_funtions(table):
     Current_section = None
 
     translate = {
-            "extensible": lambda x: {"yes": True, "no": False}[x],
-            "inputs": lambda x: csv_input_translate(x, variables, baseinputnumber),
-            "outputs": lambda x: [("OUT", x, "none")]}
+        "extensible": lambda x: {"yes": True, "no": False}[x],
+        "inputs": lambda x: csv_input_translate(x, variables, baseinputnumber),
+        "outputs": lambda x: [("OUT", x, "none")]}
 
     for fields in table:
         if fields[1]:
@@ -192,7 +198,6 @@ def get_standard_funtions(table):
                     section_name = fields[0]
                 Current_section = {"name": section_name, "list": []}
                 Standard_Functions_Decl.append(Current_section)
-                Function_decl_list = []
             if Current_section:
                 Function_decl = dict([(champ, val) for champ, val in zip(fonctions, fields[1:]) if champ])
                 baseinputnumber = int(Function_decl.get("baseinputnumber", 1))
@@ -262,7 +267,7 @@ def get_standard_funtions(table):
                             Function_decl_copy = Function_decl.copy()
                             Current_section["list"].append(Function_decl_copy)
             else:
-                raise "First function must be in a category"
+                raise ValueError("First function must be in a category")
 
     return Standard_Functions_Decl
 

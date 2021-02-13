@@ -24,7 +24,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
-from os.path import join, split, realpath
+from __future__ import absolute_import
+from os.path import join
 import util.paths as paths
 from util.TranslationCatalogs import NoTranslate
 sd = paths.AbsDir(__file__)
@@ -66,11 +67,10 @@ def GetBlockInfos(pou):
 # -------------------------------------------------------------------------------
 
 
-"""
-Ordored list of common data types defined in the IEC 61131-3
-Each type is associated to his direct parent type. It defines then a hierarchy
-between type that permits to make a comparison of two types
-"""
+#: Ordored list of common data types defined in the IEC 61131-3
+#: Each type is associated to his direct parent type. It defines then a hierarchy
+#: between type that permits to make a comparison of two types
+
 TypeHierarchy_list = [
     ("ANY", None),
     ("ANY_DERIVED", "ANY"),
@@ -114,11 +114,11 @@ DataTypeRange_list = [
     ("SINT",  (-2**7,  2**7 - 1)),
     ("INT",   (-2**15, 2**15 - 1)),
     ("DINT",  (-2**31, 2**31 - 1)),
-    ("LINT",  (-2**31, 2**31 - 1)),
+    ("LINT",  (-2**63, 2**63 - 1)),
     ("USINT", (0,      2**8 - 1)),
     ("UINT",  (0,      2**16 - 1)),
-    ("UDINT", (0,      2**31 - 1)),
-    ("ULINT", (0,      2**31 - 1))
+    ("UDINT", (0,      2**32 - 1)),
+    ("ULINT", (0,      2**64 - 1))
 ]
 
 ANY_TO_ANY_FILTERS = {

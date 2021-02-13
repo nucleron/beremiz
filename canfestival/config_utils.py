@@ -22,7 +22,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from types import *
+
+from __future__ import absolute_import
+from __future__ import print_function
+import os
+import sys
+import getopt
+from past.builtins import long
 
 # Translation between IEC types and Can Open types
 IECToCOType = {
@@ -144,7 +150,7 @@ def GeneratePDOMappingDCF(idx, cobid, transmittype, pdomapping):
         # Disable Mapping
         dcfdata += [LE_to_BE(idx + 0x200, 2) + LE_to_BE(0x00, 1) + LE_to_BE(0x01, 4) + LE_to_BE(0x00, 1)]
         # Map Variables
-        for subindex, (name, loc_infos) in enumerate(pdomapping):
+        for subindex, (_name, loc_infos) in enumerate(pdomapping):
             value = (loc_infos["index"] << 16) + (loc_infos["subindex"] << 8) + loc_infos["size"]
             dcfdata += [LE_to_BE(idx + 0x200, 2) + LE_to_BE(subindex + 1, 1) + LE_to_BE(0x04, 4) + LE_to_BE(value, 4)]
         # Re-enable Mapping
@@ -154,7 +160,7 @@ def GeneratePDOMappingDCF(idx, cobid, transmittype, pdomapping):
     return "".join(dcfdata), len(dcfdata)
 
 
-class ConciseDCFGenerator:
+class ConciseDCFGenerator(object):
 
     def __init__(self, nodelist, nodename):
         # Dictionary of location informations classed by name
@@ -459,7 +465,7 @@ class ConciseDCFGenerator:
 
                 # Indicate that this PDO entry must be saved
                 if locationinfos["bit"] is not None:
-                    if not isinstance(self.MasterMapping[cobid]["mapping"][subindex], ListType):
+                    if not isinstance(self.MasterMapping[cobid]["mapping"][subindex], list):
                         self.MasterMapping[cobid]["mapping"][subindex] = [1] * self.MasterMapping[cobid]["mapping"][subindex]
                     if locationinfos["bit"] < len(self.MasterMapping[cobid]["mapping"][subindex]):
                         self.MasterMapping[cobid]["mapping"][subindex][locationinfos["bit"]] = (locationinfos["type"], name)
@@ -551,7 +557,7 @@ class ConciseDCFGenerator:
 
             mapping = []
             for item in pdo_infos["mapping"]:
-                if isinstance(item, ListType):
+                if isinstance(item, list):
                     mapping.extend(item)
                 else:
                     mapping.append(item)
@@ -566,7 +572,7 @@ class ConciseDCFGenerator:
                     continue
                 new_index = False
 
-                if isinstance(variable, (IntType, LongType)):
+                if isinstance(variable, (int, long)):
                     # If variable is an integer then variable is unexpected
                     self.MasterNode.SetEntry(current_idx + 0x200, subindex, self.TrashVariables[variable])
                 else:
@@ -691,13 +697,9 @@ def LocalODPointers(locations, current_location, slave):
     return pointers
 
 
-if __name__ == "__main__":
-    import os
-    import sys
-    import getopt
-
+if __name__ == "__main__":  # pylint: disable=all
     def usage():
-        print """
+        print("""
 Usage of config_utils.py test :
 
     %s [options]
@@ -710,7 +712,7 @@ Options:
             Reset the reference result of config_utils test.
             Use with caution. Be sure that config_utils
             is currently working properly.
-""" % sys.argv[0]
+""" % sys.argv[0])
 
     # Boolean that indicate if reference result must be redefined
     reset = False
@@ -763,8 +765,8 @@ Options:
     # Generate MasterNode configuration
     try:
         masternode, pointedvariables = GenerateConciseDCF(locations, (0, 1), nodelist, True, "TestNode")
-    except ValueError, message:
-        print "%s\nTest Failed!" % message
+    except ValueError as message:
+        print("%s\nTest Failed!" % message)
         sys.exit()
 
     import pprint
@@ -780,10 +782,8 @@ Options:
         testfile.write(result)
         testfile.close()
 
-        print "Reset Successful!"
+        print("Reset Successful!")
     else:
-        import os
-
         testfile = open("test_config/result_tmp.txt", "w")
         testfile.write(result)
         testfile.close()

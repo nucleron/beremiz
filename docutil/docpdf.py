@@ -22,6 +22,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import wx
 
@@ -31,16 +34,16 @@ readerexepath = None
 
 def get_acroversion():
     " Return version of Adobe Acrobat executable or None"
-    import _winreg
-    adobesoft = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, r'Software\Adobe')
-    for index in range(_winreg.QueryInfoKey(adobesoft)[0]):
-        key = _winreg.EnumKey(adobesoft, index)
+    from six.moves import winreg
+    adobesoft = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'Software\Adobe')
+    for index in range(winreg.QueryInfoKey(adobesoft)[0]):
+        key = winreg.EnumKey(adobesoft, index)
         if "acrobat" in key.lower():
-            acrokey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 'Software\\Adobe\\%s' % key)
-            for index in range(_winreg.QueryInfoKey(acrokey)[0]):
-                numver = _winreg.EnumKey(acrokey, index)
+            acrokey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 'Software\\Adobe\\%s' % key)
+            for index in range(winreg.QueryInfoKey(acrokey)[0]):
+                numver = winreg.EnumKey(acrokey, index)
                 try:
-                    res = _winreg.QueryValue(_winreg.HKEY_LOCAL_MACHINE, 'Software\\Adobe\\%s\\%s\\InstallPath' % (key, numver))
+                    res = winreg.QueryValue(winreg.HKEY_LOCAL_MACHINE, 'Software\\Adobe\\%s\\%s\\InstallPath' % (key, numver))
                     return res
                 except Exception:
                     pass
@@ -58,7 +61,7 @@ def open_lin_pdf(readerexepath, pdffile, pagenum=None):
     if pagenum is None:
         os.system("%s -remote DS301 %s &" % (readerexepath, pdffile))
     else:
-        print "Open pdf %s at page %d" % (pdffile, pagenum)
+        print("Open pdf %s at page %d" % (pdffile, pagenum))
         os.system("%s -remote DS301 %s %d &" % (readerexepath, pdffile, pagenum))
 
 
@@ -71,13 +74,13 @@ def open_pdf(pdffile, pagenum=None):
             return None
 
         readerexepath = os.path.join(readerpath, "AcroRd32.exe")
-        if(os.path.isfile(readerexepath)):
+        if os.path.isfile(readerexepath):
             open_win_pdf(readerexepath, pdffile, pagenum)
         else:
             return None
     else:
         readerexepath = os.path.join("/usr/bin", "xpdf")
-        if(os.path.isfile(readerexepath)):
+        if os.path.isfile(readerexepath):
             open_lin_pdf(readerexepath, pdffile, pagenum)
         else:
             wx.MessageBox("xpdf is not found or installed !")

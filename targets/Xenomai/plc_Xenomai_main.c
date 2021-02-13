@@ -11,10 +11,10 @@
 #include <sys/mman.h>
 #include <sys/fcntl.h>
 
-#include <native/task.h>
-#include <native/timer.h>
-#include <native/sem.h>
-#include <native/pipe.h>
+#include <alchemy/task.h>
+#include <alchemy/timer.h>
+#include <alchemy/sem.h>
+#include <alchemy/pipe.h>
 
 unsigned int PLC_state = 0;
 #define PLC_STATE_TASK_CREATED                 1
@@ -37,6 +37,15 @@ unsigned int PLC_state = 0;
 #define PYTHON_PIPE_MINOR            3
 #define PIPE_SIZE                    1 
 
+// rt-pipes commands
+
+#define PYTHON_PENDING_COMMAND 1
+#define PYTHON_FINISH 2
+
+#define DEBUG_FINISH 2
+
+#define DEBUG_PENDING_DATA 1
+#define DEBUG_UNLOCK 1
 
 long AtomicCompareExchange(long* atomicvar,long compared, long exchange)
 {
@@ -81,6 +90,18 @@ void PLC_task_proc(void *arg)
         __run();
         if (PLC_shutdown) break;
         rt_task_wait_period(NULL);
+    }
+    /* since xenomai 3 it is not enough to close() 
+       file descriptor to unblock read()... */
+    {
+        /* explicitely finish python thread */
+        char msg = PYTHON_FINISH;
+        rt_pipe_write(&WaitPython_pipe, &msg, sizeof(msg), P_NORMAL);
+    }
+    {
+        /* explicitely finish debug thread */
+        char msg = DEBUG_FINISH;
+        rt_pipe_write(&WaitDebug_pipe, &msg, sizeof(msg), P_NORMAL);
     }
 }
 
@@ -159,6 +180,15 @@ void catch_signal(int sig)
     exit(0);
 }
 
+#define _startPLCLog(text) \
+    {\
+    	char mstr[] = text;\
+        LogMessage(LOG_CRITICAL, mstr, sizeof(mstr));\
+        goto error;\
+    }
+
+#define FO "Failed opening "
+
 #define max_val(a,b) ((a>b)?a:b)
 int startPLC(int argc,char **argv)
 {
@@ -171,49 +201,55 @@ int startPLC(int argc,char **argv)
 
     /*** RT Pipes creation and opening ***/
     /* create Debug_pipe */
-    if(rt_pipe_create(&Debug_pipe, "Debug_pipe", DEBUG_PIPE_MINOR, PIPE_SIZE)) 
-        goto error;
+    if(rt_pipe_create(&Debug_pipe, "Debug_pipe", DEBUG_PIPE_MINOR, PIPE_SIZE) < 0) 
+        _startPLCLog(FO "Debug_pipe real-time end");
     PLC_state |= PLC_STATE_DEBUG_PIPE_CREATED;
 
     /* open Debug_pipe*/
-    if((Debug_pipe_fd = open(DEBUG_PIPE_DEVICE, O_RDWR)) == -1) goto error;
+    if((Debug_pipe_fd = open(DEBUG_PIPE_DEVICE, O_RDWR)) == -1)
+        _startPLCLog(FO DEBUG_PIPE_DEVICE);
     PLC_state |= PLC_STATE_DEBUG_FILE_OPENED;
 
     /* create Python_pipe */
-    if(rt_pipe_create(&Python_pipe, "Python_pipe", PYTHON_PIPE_MINOR, PIPE_SIZE)) 
-        goto error;
+    if(rt_pipe_create(&Python_pipe, "Python_pipe", PYTHON_PIPE_MINOR, PIPE_SIZE) < 0) 
+        _startPLCLog(FO "Python_pipe real-time end");
     PLC_state |= PLC_STATE_PYTHON_PIPE_CREATED;
 
     /* open Python_pipe*/
-    if((Python_pipe_fd = open(PYTHON_PIPE_DEVICE, O_RDWR)) == -1) goto error;
+    if((Python_pipe_fd = open(PYTHON_PIPE_DEVICE, O_RDWR)) == -1)
+        _startPLCLog(FO PYTHON_PIPE_DEVICE);
     PLC_state |= PLC_STATE_PYTHON_FILE_OPENED;
 
     /* create WaitDebug_pipe */
-    if(rt_pipe_create(&WaitDebug_pipe, "WaitDebug_pipe", WAITDEBUG_PIPE_MINOR, PIPE_SIZE))
-        goto error;
+    if(rt_pipe_create(&WaitDebug_pipe, "WaitDebug_pipe", WAITDEBUG_PIPE_MINOR, PIPE_SIZE) < 0)
+        _startPLCLog(FO "WaitDebug_pipe real-time end");
     PLC_state |= PLC_STATE_WAITDEBUG_PIPE_CREATED;
 
     /* open WaitDebug_pipe*/
-    if((WaitDebug_pipe_fd = open(WAITDEBUG_PIPE_DEVICE, O_RDWR)) == -1) goto error;
+    if((WaitDebug_pipe_fd = open(WAITDEBUG_PIPE_DEVICE, O_RDWR)) == -1)
+        _startPLCLog(FO WAITDEBUG_PIPE_DEVICE);
     PLC_state |= PLC_STATE_WAITDEBUG_FILE_OPENED;
 
     /* create WaitPython_pipe */
-    if(rt_pipe_create(&WaitPython_pipe, "WaitPython_pipe", WAITPYTHON_PIPE_MINOR, PIPE_SIZE))
-        goto error;
+    if(rt_pipe_create(&WaitPython_pipe, "WaitPython_pipe", WAITPYTHON_PIPE_MINOR, PIPE_SIZE) < 0)
+        _startPLCLog(FO "WaitPython_pipe real-time end");
     PLC_state |= PLC_STATE_WAITPYTHON_PIPE_CREATED;
 
     /* open WaitPython_pipe*/
-    if((WaitPython_pipe_fd = open(WAITPYTHON_PIPE_DEVICE, O_RDWR)) == -1) goto error;
+    if((WaitPython_pipe_fd = open(WAITPYTHON_PIPE_DEVICE, O_RDWR)) == -1)
+        _startPLCLog(FO WAITPYTHON_PIPE_DEVICE);
     PLC_state |= PLC_STATE_WAITPYTHON_FILE_OPENED;
 
     /*** create PLC task ***/
-    if(rt_task_create(&PLC_task, "PLC_task", 0, 50, T_JOINABLE)) goto error;
+    if(rt_task_create(&PLC_task, "PLC_task", 0, 50, T_JOINABLE))
+        _startPLCLog("Failed creating PLC task");
     PLC_state |= PLC_STATE_TASK_CREATED;
 
     if(__init(argc,argv)) goto error;
 
     /* start PLC task */
-    if(rt_task_start(&PLC_task, &PLC_task_proc, NULL)) goto error;
+    if(rt_task_start(&PLC_task, &PLC_task_proc, NULL))
+        _startPLCLog("Failed starting PLC task");
 
     return 0;
 
@@ -241,7 +277,6 @@ int TryEnterDebugSection(void)
     return 0;
 }
 
-#define DEBUG_UNLOCK 1
 void LeaveDebugSection(void)
 {
     if(AtomicCompareExchange( &debug_state, 
@@ -254,7 +289,6 @@ void LeaveDebugSection(void)
 
 extern unsigned long __tick;
 
-#define DEBUG_PENDING_DATA 1
 int WaitDebugData(unsigned long *tick)
 {
     char cmd;
@@ -303,8 +337,6 @@ void resumeDebug(void)
 {
     AtomicCompareExchange( &debug_state, DEBUG_BUSY, DEBUG_FREE);
 }
-
-#define PYTHON_PENDING_COMMAND 1
 
 #define PYTHON_FREE 0
 #define PYTHON_BUSY 1
@@ -363,6 +395,7 @@ void UnLockPython(void)
     }    /* as plc does not wait for lock. */
 }
 
+#ifndef HAVE_RETAIN
 int CheckRetainBuffer(void)
 {
 	return 1;
@@ -391,3 +424,4 @@ void CleanupRetain(void)
 void InitRetain(void)
 {
 }
+#endif // !HAVE_RETAIN

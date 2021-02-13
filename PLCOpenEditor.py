@@ -23,78 +23,36 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import wx
+
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
 import getopt
 
+import wx
+
 import version
 import util.paths as paths
 import util.ExceptionHandler
-
-
-beremiz_dir = paths.AbsDir(__file__)
-
-
-if __name__ == '__main__':
-    # Usage message displayed when help request or when error detected in
-    # command line
-    def usage():
-        print "\nUsage of PLCOpenEditor.py :"
-        print "\n   %s [Filepath]\n" % sys.argv[0]
-
-    # Parse options given to PLCOpenEditor in command line
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "h", ["help"])
-    except getopt.GetoptError:
-        # print help information and exit:
-        usage()
-        sys.exit(2)
-
-    # Extract if help has been requested
-    for o, a in opts:
-        if o in ("-h", "--help"):
-            usage()
-            sys.exit()
-
-    # Extract the optional filename to open
-    fileOpen = None
-    if len(args) > 1:
-        usage()
-        sys.exit()
-    elif len(args) == 1:
-        fileOpen = args[0]
-
-    # Create wxApp (Need to create App before internationalization because of
-    # Windows)
-    if wx.VERSION >= (3, 0, 0):
-        app = wx.App()
-    else:
-        app = wx.PySimpleApp()
-
-    from util.misc import InstallLocalRessources
-    InstallLocalRessources(beremiz_dir)
-
-    # these imports require wx.GetApp to return
-    # a valid application instance
-
-    from IDEFrame import IDEFrame, AppendMenu
-    from IDEFrame import \
-        TITLE, \
-        EDITORTOOLBAR, \
-        FILEMENU, \
-        EDITMENU, \
-        DISPLAYMENU, \
-        PROJECTTREE, \
-        POUINSTANCEVARIABLESPANEL, \
-        LIBRARYTREE, \
-        PAGETITLES
-
-    from IDEFrame import EncodeFileSystemPath, DecodeFileSystemPath
-    from editors.Viewer import Viewer
-    from PLCControler import PLCControler
-    from dialogs import ProjectDialog
-    from dialogs.AboutDialog import ShowAboutDialog
+from util.misc import InstallLocalRessources
+from docutil.docpdf import open_pdf
+from IDEFrame import IDEFrame, AppendMenu
+from IDEFrame import \
+    TITLE, \
+    EDITORTOOLBAR, \
+    FILEMENU, \
+    EDITMENU, \
+    DISPLAYMENU, \
+    PROJECTTREE, \
+    POUINSTANCEVARIABLESPANEL, \
+    LIBRARYTREE, \
+    PAGETITLES, \
+    DecodeFileSystemPath
+from editors.Viewer import Viewer
+from PLCControler import PLCControler
+from dialogs import ProjectDialog
+from dialogs.AboutDialog import ShowAboutDialog
 
 
 # -------------------------------------------------------------------------------
@@ -104,18 +62,14 @@ if __name__ == '__main__':
 # Define PLCOpenEditor FileMenu extra items id
 [
     ID_PLCOPENEDITORFILEMENUGENERATE,
-] = [wx.NewId() for _init_coll_FileMenu_Items in range(1)]
+    ID_PLCOPENEDITORFILEMENUGENERATEAS,
+] = [wx.NewId() for _init_coll_FileMenu_Items in range(2)]
+
+
+beremiz_dir = paths.AbsDir(__file__)
 
 
 class PLCOpenEditor(IDEFrame):
-
-    # Compatibility function for wx versions < 2.6
-    if wx.VERSION < (2, 6, 0):
-        def Bind(self, event, function, id=None):
-            if id is not None:
-                event(self, id, function)
-            else:
-                event(self, function)
 
     def _init_coll_FileMenu_Items(self, parent):
         AppendMenu(parent, help='', id=wx.ID_NEW,
@@ -133,6 +87,8 @@ class PLCOpenEditor(IDEFrame):
                    kind=wx.ITEM_NORMAL, text=_(u'Save As...') + '\tCTRL+SHIFT+S')
         AppendMenu(parent, help='', id=ID_PLCOPENEDITORFILEMENUGENERATE,
                    kind=wx.ITEM_NORMAL, text=_(u'Generate Program') + '\tCTRL+G')
+        AppendMenu(parent, help='', id=ID_PLCOPENEDITORFILEMENUGENERATEAS,
+                   kind=wx.ITEM_NORMAL, text=_(u'Generate Program As...') + '\tCTRL+SHIFT+G')
         parent.AppendSeparator()
         AppendMenu(parent, help='', id=wx.ID_PAGE_SETUP,
                    kind=wx.ITEM_NORMAL, text=_(u'Page Setup') + '\tCTRL+ALT+P')
@@ -155,6 +111,8 @@ class PLCOpenEditor(IDEFrame):
         self.Bind(wx.EVT_MENU, self.OnSaveProjectAsMenu, id=wx.ID_SAVEAS)
         self.Bind(wx.EVT_MENU, self.OnGenerateProgramMenu,
                   id=ID_PLCOPENEDITORFILEMENUGENERATE)
+        self.Bind(wx.EVT_MENU, self.OnGenerateProgramAsMenu,
+                  id=ID_PLCOPENEDITORFILEMENUGENERATEAS)
         self.Bind(wx.EVT_MENU, self.OnPageSetupMenu, id=wx.ID_PAGE_SETUP)
         self.Bind(wx.EVT_MENU, self.OnPreviewMenu, id=wx.ID_PREVIEW)
         self.Bind(wx.EVT_MENU, self.OnPrintMenu, id=wx.ID_PRINT)
@@ -165,7 +123,8 @@ class PLCOpenEditor(IDEFrame):
                                (wx.ID_OPEN, "open", _(u'Open'), None),
                                (wx.ID_SAVE, "save", _(u'Save'), None),
                                (wx.ID_SAVEAS, "saveas", _(u'Save As...'), None),
-                               (wx.ID_PRINT, "print", _(u'Print'), None)])
+                               (wx.ID_PRINT, "print", _(u'Print'), None),
+                               (ID_PLCOPENEDITORFILEMENUGENERATE, "Build", _(u'Generate Program'), None)])
 
     def _init_coll_HelpMenu_Items(self, parent):
         AppendMenu(parent, help='', id=wx.ID_HELP,
@@ -279,6 +238,8 @@ class PLCOpenEditor(IDEFrame):
             self.FileMenu.Enable(wx.ID_SAVEAS, True)
             MenuToolBar.EnableTool(wx.ID_SAVEAS, True)
             self.FileMenu.Enable(ID_PLCOPENEDITORFILEMENUGENERATE, True)
+            MenuToolBar.EnableTool(ID_PLCOPENEDITORFILEMENUGENERATE, True)
+            self.FileMenu.Enable(ID_PLCOPENEDITORFILEMENUGENERATEAS, True)
         else:
             self.FileMenu.Enable(wx.ID_CLOSE, False)
             self.FileMenu.Enable(wx.ID_PAGE_SETUP, False)
@@ -292,6 +253,8 @@ class PLCOpenEditor(IDEFrame):
             self.FileMenu.Enable(wx.ID_SAVEAS, False)
             MenuToolBar.EnableTool(wx.ID_SAVEAS, False)
             self.FileMenu.Enable(ID_PLCOPENEDITORFILEMENUGENERATE, False)
+            MenuToolBar.EnableTool(ID_PLCOPENEDITORFILEMENUGENERATE, False)
+            self.FileMenu.Enable(ID_PLCOPENEDITORFILEMENUGENERATEAS, False)
 
     def OnNewProjectMenu(self, event):
         if self.Controler is not None and not self.CheckSaveBeforeClosing():
@@ -352,27 +315,39 @@ class PLCOpenEditor(IDEFrame):
         self.SaveProjectAs()
 
     def OnGenerateProgramMenu(self, event):
-        dialog = wx.FileDialog(self, _("Choose a file"), os.getcwd(), self.Controler.GetProgramFilePath(),  _("ST files (*.st)|*.st|All files|*.*"), wx.SAVE | wx.CHANGE_DIR)
+        result = self.Controler.GetProgramFilePath()
+        if not result:
+            self.GenerateProgramAs()
+        else:
+            self.GenerateProgram(result)
+
+    def OnGenerateProgramAsMenu(self, event):
+        self.GenerateProgramAs()
+
+    def GenerateProgramAs(self):
+        dialog = wx.FileDialog(self, _("Choose a file"), os.getcwd(), os.path.basename(self.Controler.GetProgramFilePath()),  _("ST files (*.st)|*.st|All files|*.*"), wx.SAVE | wx.CHANGE_DIR)
         if dialog.ShowModal() == wx.ID_OK:
-            filepath = dialog.GetPath()
-            message_text = ""
-            header, icon = _("Done"), wx.ICON_INFORMATION
-            if os.path.isdir(os.path.dirname(filepath)):
-                program, errors, warnings = self.Controler.GenerateProgram(filepath)
-                message_text += "".join([_("warning: %s\n") % warning for warning in warnings])
-                if len(errors) > 0:
-                    message_text += "".join([_("error: %s\n") % error for error in errors])
-                    message_text += _("Can't generate program to file %s!") % filepath
-                    header, icon = _("Error"), wx.ICON_ERROR
-                else:
-                    message_text += _("Program was successfully generated!")
-            else:
-                message_text += _("\"%s\" is not a valid folder!") % os.path.dirname(filepath)
-                header, icon = _("Error"), wx.ICON_ERROR
-            message = wx.MessageDialog(self, message_text, header, wx.OK | icon)
-            message.ShowModal()
-            message.Destroy()
+            self.GenerateProgram(dialog.GetPath())
         dialog.Destroy()
+
+    def GenerateProgram(self, filepath=None):
+        message_text = ""
+        header, icon = _("Done"), wx.ICON_INFORMATION
+        if os.path.isdir(os.path.dirname(filepath)):
+            _program, errors, warnings = self.Controler.GenerateProgram(filepath)
+            message_text += "".join([_("warning: %s\n") % warning for warning in warnings])
+            if len(errors) > 0:
+                message_text += "".join([_("error: %s\n") % error for error in errors])
+                message_text += _("Can't generate program to file %s!") % filepath
+                header, icon = _("Error"), wx.ICON_ERROR
+            else:
+                message_text += _("Program was successfully generated!")
+        else:
+            message_text += _("\"%s\" is not a valid folder!") % os.path.dirname(filepath)
+            header, icon = _("Error"), wx.ICON_ERROR
+        message = wx.MessageDialog(self, message_text, header, wx.OK | icon)
+        message.ShowModal()
+        message.Destroy()
 
     def OnPLCOpenEditorMenu(self, event):
         wx.MessageBox(_("No documentation available.\nComing soon."))
@@ -414,14 +389,51 @@ class PLCOpenEditor(IDEFrame):
         dialog.Destroy()
 
 
+class PLCOpenEditorApp(wx.App):
+    # def SetOpenFile(
+
+    def PrintUsage(self):
+        print("\nUsage of PLCOpenEditor.py :")
+        print("\n   %s [Filepath]\n" % sys.argv[0])
+
+    def ParseCommandLine(self):
+        # Parse options given to PLCOpenEditor in command line
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "h", ["help"])
+        except getopt.GetoptError:
+            # print help information and exit:
+            self.PrintUsage()
+            sys.exit(2)
+
+        # Extract if help has been requested
+        for o, _a in opts:
+            if o in ("-h", "--help"):
+                self.PrintUsage()
+                sys.exit()
+
+        # Extract the optional filename to open
+        self.fileOpen = None
+        if len(args) > 1:
+            self.PrintUsage()
+            sys.exit()
+        elif len(args) == 1:
+            self.fileOpen = args[0]
+
+    def OnInit(self):
+        self.SetAppName('plcopeneditor')
+        self.ParseCommandLine()
+        InstallLocalRessources(beremiz_dir)
+        if wx.VERSION < (3, 0, 0):
+            wx.InitAllImageHandlers()
+        util.ExceptionHandler.AddExceptHook(version.app_version)
+        self.frame = PLCOpenEditor(None, fileOpen=self.fileOpen)
+        return True
+
+    def Show(self):
+        self.frame.Show()
+
+
 if __name__ == '__main__':
-    if wx.VERSION < (3, 0, 0):
-        wx.InitAllImageHandlers()
-
-    # Install a exception handle for bug reports
-    util.ExceptionHandler.AddExceptHook(version.app_version)
-
-    frame = PLCOpenEditor(None, fileOpen=fileOpen)
-
-    frame.Show()
+    app = PLCOpenEditorApp()
+    app.Show()
     app.MainLoop()

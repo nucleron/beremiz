@@ -1,28 +1,40 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# This file is part of Beremiz runtime.
-#
-# Copyright (C) 2007: Edouard TISSERANT and Laurent BESSARD
-#
-# See COPYING.Runtime file for copyrights details.
-#
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
+from __future__ import absolute_import
+from __future__ import print_function
+import traceback
+import sys
 
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
+from runtime.Worker import worker
+MainWorker = worker()
 
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+_PLCObjectSingleton = None
 
 
-import os
+def GetPLCObjectSingleton():
+    assert _PLCObjectSingleton is not None
+    return _PLCObjectSingleton
 
-from PLCObject import PLCObject, PLCprint
-import ServicePublisher
+
+def LogMessageAndException(msg, exp=None):
+    if exp is None:
+        exp = sys.exc_info()
+    if _PLCObjectSingleton is not None:
+        _PLCObjectSingleton.LogMessage(0, msg + '\n'.join(traceback.format_exception(*exp)))
+    print(msg)
+    traceback.print_exception(*exp)
+
+
+def CreatePLCObjectSingleton(*args, **kwargs):
+    global _PLCObjectSingleton
+    from runtime.PLCObject import PLCObject  # noqa # pylint: disable=wrong-import-position
+    _PLCObjectSingleton = PLCObject(*args, **kwargs)
+
+
+def default_evaluator(tocall, *args, **kwargs):
+    try:
+        res = (tocall(*args, **kwargs), None)
+    except Exception:
+        res = (None, sys.exc_info())
+    return res

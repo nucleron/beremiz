@@ -22,29 +22,25 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-from types import TupleType
+
+from __future__ import absolute_import
+from __future__ import division
 from time import time as gettime
+from cycler import cycler
+
 import numpy
-
 import wx
-
 import matplotlib
 import matplotlib.pyplot
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import _convert_agg_to_wx_bitmap
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from mpl_toolkits.mplot3d import Axes3D
+from six.moves import xrange
 
 from editors.DebugViewer import REFRESH_PERIOD
-
-from DebugVariableItem import DebugVariableItem
-from DebugVariableViewer import *
-from GraphButton import GraphButton
-
-
-from distutils.version import LooseVersion
-if LooseVersion(matplotlib.__version__) >= LooseVersion("1.5.0"):
-    from cycler import cycler
+from controls.DebugVariablePanel.DebugVariableViewer import *
+from controls.DebugVariablePanel.GraphButton import GraphButton
 
 
 # Graph variable display type
@@ -53,7 +49,7 @@ GRAPH_PARALLEL, GRAPH_ORTHOGONAL = range(2)
 # Canvas height
 [SIZE_MINI, SIZE_MIDDLE, SIZE_MAXI] = [0, 100, 200]
 
-CANVAS_BORDER = (20., 10.)  # Border height on at bottom and top of graph
+CANVAS_BORDER = (30., 20.)  # Border height on at bottom and top of graph
 CANVAS_PADDING = 8.5        # Border inside graph where no label is drawn
 VALUE_LABEL_HEIGHT = 17.    # Height of variable label in graph
 AXES_LABEL_HEIGHT = 12.75   # Height of variable value in graph
@@ -161,7 +157,7 @@ class DebugVariableGraphicDropTarget(wx.TextDropTarget):
         # Check that data is valid regarding DebugVariablePanel
         try:
             values = eval(data)
-            if not isinstance(values, TupleType):
+            if not isinstance(values, tuple):
                 raise ValueError
         except Exception:
             message = _("Invalid value \"%s\" for debug variable") % data
@@ -195,11 +191,11 @@ class DebugVariableGraphicDropTarget(wx.TextDropTarget):
                              merge_type, force=True)
 
             else:
-                width, height = self.ParentControl.GetSize()
+                _width, height = self.ParentControl.GetSize()
 
                 # Get Before which Viewer the variable has to be moved or added
                 # according to the position of mouse in Viewer.
-                if y > height / 2:
+                if y > height // 2:
                     target_idx += 1
 
                 # Drag'n Drop is an internal is an internal move inside Debug
@@ -307,15 +303,14 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
 
         # Add buttons for zooming on current displayed data range
         self.Buttons.append(
-                GraphButton(0, 0, "fit_graph", self.OnZoomFitButton))
+            GraphButton(0, 0, "fit_graph", self.OnZoomFitButton))
 
         # Add buttons for changing canvas size with predefined height
         for size, bitmap in zip(
                 [SIZE_MINI, SIZE_MIDDLE, SIZE_MAXI],
                 ["minimize_graph", "middle_graph", "maximize_graph"]):
-            self.Buttons.append(
-                    GraphButton(0, 0, bitmap,
-                                self.GetOnChangeSizeButton(size)))
+            self.Buttons.append(GraphButton(0, 0, bitmap,
+                                            self.GetOnChangeSizeButton(size)))
 
         # Add buttons for exporting graph values to clipboard and close graph
         for bitmap, callback in [
@@ -431,8 +426,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                 ("force", self.OnForceItemButton),
                 ("export_graph_mini", self.OnExportItemGraphButton),
                 ("delete_graph", self.OnRemoveItemButton)]:
-            self.ContextualButtons.append(
-                    GraphButton(0, 0, bitmap, callback))
+            self.ContextualButtons.append(GraphButton(0, 0, bitmap, callback))
 
         # If buttons are shown at left side or upper side of rect, positions
         # will be set in reverse order
@@ -449,10 +443,10 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                 x = rect.x + (- w - offset
                               if direction == wx.LEFT
                               else rect.width + offset)
-                y = rect.y + (rect.height - h) / 2
+                y = rect.y + (rect.height - h) // 2
                 offset += w
             else:
-                x = rect.x + (rect.width - w) / 2
+                x = rect.x + (rect.width - w) // 2
                 y = rect.y + (- h - offset
                               if direction == wx.TOP
                               else rect.height + offset)
@@ -599,7 +593,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
             # and set cursor tick to the tick of this point
             if len(data) > 0:
                 cursor_tick = data[numpy.argmin(
-                        numpy.abs(data[:, 0] - event.xdata)), 0]
+                    numpy.abs(data[:, 0] - event.xdata)), 0]
 
         # Update cursor tick
         if cursor_tick is not None:
@@ -612,7 +606,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         """
         # Get mouse position, graph Y coordinate is inverted in matplotlib
         # comparing to wx
-        width, height = self.GetSize()
+        _width, height = self.GetSize()
         x, y = event.x, height - event.y
 
         # Return immediately if mouse is over a button
@@ -681,7 +675,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         """
         # If a drag'n drop is in progress, stop it
         if self.ParentWindow.IsDragging():
-            width, height = self.GetSize()
+            _width, height = self.GetSize()
             xw, yw = self.GetPosition()
             item = self.ParentWindow.DraggingAxesPanel.ItemsDict.values()[0]
             # Give mouse position in wx coordinate of parent
@@ -694,7 +688,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
             self.CanvasStartSize = None
 
             # Handle button under mouse if it exist
-            width, height = self.GetSize()
+            _width, height = self.GetSize()
             self.HandleButton(event.x, height - event.y)
 
     def OnCanvasMotion(self, event):
@@ -702,7 +696,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         Function called when a button of mouse is moved over Viewer
         @param event: Mouse event
         """
-        width, height = self.GetSize()
+        _width, height = self.GetSize()
 
         # If a drag'n drop is in progress, move canvas dragged
         if self.ParentWindow.IsDragging():
@@ -714,7 +708,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
 
         # If a Viewer resize is in progress, change Viewer size
         elif event.button == 1 and self.CanvasStartSize is not None:
-            width, height = self.GetSize()
+            _width, height = self.GetSize()
             self.SetCanvasHeight(
                 self.CanvasStartSize + height - event.y - self.MouseStartPos.y)
 
@@ -807,7 +801,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                 self.ParentWindow.SetCanvasPosition(
                     self.StartCursorTick +
                     (self.MouseStartPos.x - event.x) *
-                    (end_tick - start_tick) / rect.width)
+                    (end_tick - start_tick) // rect.width)
 
     def OnCanvasScroll(self, event):
         """
@@ -825,7 +819,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                 tick = (start_tick + end_tick) / 2.
             else:
                 tick = event.xdata
-            self.ParentWindow.ChangeRange(int(-event.step) / 3, tick)
+            self.ParentWindow.ChangeRange(int(-event.step) // 3, tick)
 
             # Vetoing event to prevent parent panel to be scrolled
             self.ParentWindow.VetoScrollEvent = True
@@ -928,12 +922,12 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         @param x: X coordinate of mouse pointer
         @param y: Y coordinate of mouse pointer
         """
-        width, height = self.GetSize()
+        _width, height = self.GetSize()
 
         # Mouse is over Viewer figure and graph is not 3D
         bbox = self.GetAxesBoundingBox()
         if bbox.InsideXY(x, y) and not self.Is3DCanvas():
-            rect = wx.Rect(bbox.x, bbox.y, bbox.width / 2, bbox.height)
+            rect = wx.Rect(bbox.x, bbox.y, bbox.width // 2, bbox.height)
             # Mouse is over Viewer left part of figure
             if rect.InsideXY(x, y):
                 self.SetHighlight(HIGHLIGHT_LEFT)
@@ -943,7 +937,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                 self.SetHighlight(HIGHLIGHT_RIGHT)
 
         # Mouse is over upper part of Viewer
-        elif y < height / 2:
+        elif y < height // 2:
             # Viewer is upper one in Debug Variable Panel, show highlight
             if self.ParentWindow.IsViewerFirst(self):
                 self.SetHighlight(HIGHLIGHT_BEFORE)
@@ -986,10 +980,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         return AddText
 
     def SetAxesColor(self, color):
-        if LooseVersion(matplotlib.__version__) >= LooseVersion("1.5.0"):
-            self.Axes.set_prop_cycle(cycler('color', color))
-        else:
-            self.Axes.set_color_cycle(color)
+        self.Axes.set_prop_cycle(cycler('color', color))
 
     def ResetGraphics(self):
         """
@@ -1072,7 +1063,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                               verticalalignment='top'))
 
         # Refresh position of labels according to Viewer size
-        width, height = self.GetSize()
+        _width, height = self.GetSize()
         self.RefreshLabelsPosition(height)
 
     def RefreshLabelsPosition(self, height):
@@ -1118,15 +1109,15 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         else:
             # X coordinate labels are in figure lower side
             self.AxesLabels[0].set_position(
-                    (0.1, CANVAS_PADDING * graph_ratio))
+                (0.1, CANVAS_PADDING * graph_ratio))
             self.Labels[0].set_position(
-                    (0.95, CANVAS_PADDING * graph_ratio))
+                (0.95, CANVAS_PADDING * graph_ratio))
 
             # Y coordinate labels are vertical and in figure left side
             self.AxesLabels[1].set_position(
-                    (0.05, 2 * CANVAS_PADDING * graph_ratio))
+                (0.05, 2 * CANVAS_PADDING * graph_ratio))
             self.Labels[1].set_position(
-                    (0.05, 1.0 - CANVAS_PADDING * graph_ratio))
+                (0.05, 1.0 - CANVAS_PADDING * graph_ratio))
 
         # Update subplots
         self.Figure.subplots_adjust()
@@ -1150,7 +1141,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                 # Get data and range for each variable displayed
                 for idx, item in enumerate(self.Items):
                     data, min_value, max_value = item.GetDataAndValueRange(
-                                start_tick, end_tick, not self.ZoomFit)
+                        start_tick, end_tick, not self.ZoomFit)
 
                     # Check that data is not empty
                     if data is not None:
@@ -1200,10 +1191,11 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
 
                 # Get data and range for first variable (X coordinate)
                 x_data, x_min, x_max = items[0].GetDataAndValueRange(
-                                        start_tick, end_tick, not self.ZoomFit)
+                    start_tick, end_tick, not self.ZoomFit)
+
                 # Get data and range for second variable (Y coordinate)
                 y_data, y_min, y_max = items[1].GetDataAndValueRange(
-                                        start_tick, end_tick, not self.ZoomFit)
+                    start_tick, end_tick, not self.ZoomFit)
 
                 # Normalize X and Y coordinates value range
                 x_min, x_max = merge_ranges([(x_min, x_max)])
@@ -1211,10 +1203,10 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
 
                 # Get X and Y coordinates for cursor if cursor tick is defined
                 if self.CursorTick is not None:
-                    x_cursor, x_forced = items[0].GetValue(
-                                            self.CursorTick, raw=True)
-                    y_cursor, y_forced = items[1].GetValue(
-                                            self.CursorTick, raw=True)
+                    x_cursor, _x_forced = items[0].GetValue(
+                        self.CursorTick, raw=True)
+                    y_cursor, _y_forced = items[1].GetValue(
+                        self.CursorTick, raw=True)
 
                 # Get common data length so that each value has an x and y
                 # coordinate
@@ -1282,7 +1274,7 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
 
                     # Get data and range for third variable (Z coordinate)
                     z_data, z_min, z_max = items[2].GetDataAndValueRange(
-                                    start_tick, end_tick, not self.ZoomFit)
+                        start_tick, end_tick, not self.ZoomFit)
 
                     # Normalize Z coordinate value range
                     z_min, z_max = merge_ranges([(z_min, z_max)])
@@ -1307,8 +1299,8 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
                        start_tick <= self.CursorTick <= end_tick:
 
                         # Get Z coordinate for cursor
-                        z_cursor, z_forced = items[2].GetValue(
-                                                self.CursorTick, raw=True)
+                        z_cursor, _z_forced = items[2].GetValue(
+                            self.CursorTick, raw=True)
 
                         # Add 3 lines parallel to x, y and z axis to display
                         # cursor position in 3D
@@ -1333,11 +1325,11 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         # Get value and forced flag for each variable displayed in graph
         # If cursor tick is not defined get value and flag of last received
         # or get value and flag of variable at cursor tick
-        values, forced = apply(zip, [
-                (item.GetValue(self.CursorTick)
-                 if self.CursorTick is not None
-                 else (item.GetValue(), item.IsForced()))
-                for item in self.Items])
+        args = [(
+            item.GetValue(self.CursorTick)
+            if self.CursorTick is not None
+            else (item.GetValue(), item.IsForced())) for item in self.Items]
+        values, forced = zip(*args)
 
         # Get path of each variable displayed simplified using panel variable
         # name mask
@@ -1398,21 +1390,21 @@ class DebugVariableGraphicViewer(DebugVariableViewer, FigureCanvas):
         # If highlight to display is resize, draw thick grey line at bottom
         # side of canvas
         if self.Highlight == HIGHLIGHT_RESIZE:
-            destGC.SetPen(HIGHLIGHT_RESIZE_PEN)
-            destGC.SetBrush(HIGHLIGHT_RESIZE_BRUSH)
+            destGC.SetPen(HIGHLIGHT['RESIZE_PEN'])
+            destGC.SetBrush(HIGHLIGHT['RESIZE_BRUSH'])
             destGC.DrawRectangle(0, height - 5, width, 5)
 
         # If highlight to display is merging graph, draw 50% transparent blue
         # rectangle on left or right part of figure depending on highlight type
         elif self.Highlight in [HIGHLIGHT_LEFT, HIGHLIGHT_RIGHT]:
-            destGC.SetPen(HIGHLIGHT_DROP_PEN)
-            destGC.SetBrush(HIGHLIGHT_DROP_BRUSH)
+            destGC.SetPen(HIGHLIGHT['DROP_PEN'])
+            destGC.SetBrush(HIGHLIGHT['DROP_BRUSH'])
 
-            x_offset = (bbox.width / 2
+            x_offset = (bbox.width // 2
                         if self.Highlight == HIGHLIGHT_RIGHT
                         else 0)
             destGC.DrawRectangle(bbox.x + x_offset, bbox.y,
-                                 bbox.width / 2, bbox.height)
+                                 bbox.width // 2, bbox.height)
 
         # Draw other Viewer common elements
         self.DrawCommonElements(destGC, self.GetButtons())

@@ -2,7 +2,7 @@
 platform = ''  # to be updated by app, on compile
 
 # a dictionary of module override names (platform-specific)
-overrides = None  # to be updated by app, on compile
+overrides = {}  # to be updated by app, on compile
 
 # the remote path for loading modules
 loadpath = None
@@ -23,12 +23,10 @@ def setappname(an):
 
 
 def getloadpath():
-    global loadpath
     return loadpath
 
 
 def addoverride(module_name, path):
-    global overrides
     overrides[module_name] = path
 
 

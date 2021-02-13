@@ -22,9 +22,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+from __future__ import absolute_import
 import wx
 
-from subindextable import EditingPanel
 from networkeditortemplate import NetworkEditorTemplate
 from editors.ConfTreeNodeEditor import ConfTreeNodeEditor
 
@@ -96,7 +96,7 @@ class NetworkEditor(ConfTreeNodeEditor, NetworkEditorTemplate):
         if profile not in ("None", "DS-301"):
             other_profile_text = _("%s Profile") % profile
             add_menu.append((wx.ITEM_SEPARATOR, None))
-            for text, indexes in self.Manager.GetCurrentSpecificMenu():
+            for text, _indexes in self.Manager.GetCurrentSpecificMenu():
                 add_menu.append((wx.ITEM_NORMAL, (text, wx.NewId(), '', self.GetProfileCallBack(text))))
         else:
             other_profile_text = _('Other Profile')

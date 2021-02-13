@@ -22,12 +22,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from __future__ import division
 from collections import OrderedDict
+from functools import reduce
 
 import wx
-
-import matplotlib
-import matplotlib.pyplot
 from matplotlib.backends.backend_wxagg import _convert_agg_to_wx_bitmap
 
 from dialogs.ForceVariableDialog import ForceVariableDialog
@@ -41,29 +42,28 @@ from dialogs.ForceVariableDialog import ForceVariableDialog
  HIGHLIGHT_RESIZE] = range(6)
 
 # Viewer highlight styles
-HIGHLIGHT_DROP_PEN = wx.Pen(wx.Colour(0, 128, 255))
-HIGHLIGHT_DROP_BRUSH = wx.Brush(wx.Colour(0, 128, 255, 128))
-HIGHLIGHT_RESIZE_PEN = wx.Pen(wx.Colour(200, 200, 200))
-HIGHLIGHT_RESIZE_BRUSH = wx.Brush(wx.Colour(200, 200, 200))
+HIGHLIGHT = {
+}
 
 # -------------------------------------------------------------------------------
 #                        Base Debug Variable Viewer Class
 # -------------------------------------------------------------------------------
 
 
-class DebugVariableViewer:
+class DebugVariableViewer(object):
     """
     Class that implements a generic viewer that display a list of variable values
     This class has to be inherited to effectively display variable values
     """
 
-    def __init__(self, window, items=[]):
+    def __init__(self, window, items=None):
         """
         Constructor
         @param window: Reference to the Debug Variable Panel
         @param items: List of DebugVariableItem displayed by Viewer
         """
         self.ParentWindow = window
+        items = [] if items is None else items
         self.ItemsDict = OrderedDict([(item.GetVariable(), item)
                                       for item in items])
         self.Items = self.ItemsDict.viewvalues()
@@ -72,6 +72,7 @@ class DebugVariableViewer:
         self.Highlight = HIGHLIGHT_NONE
         # List of buttons
         self.Buttons = []
+        self.InitHighlightPensBrushes()
 
     def __del__(self):
         """
@@ -79,6 +80,16 @@ class DebugVariableViewer:
         """
         # Remove reference to Debug Variable Panel
         self.ParentWindow = None
+
+    def InitHighlightPensBrushes(self):
+        """
+        Init global pens and brushes
+        """
+        if not HIGHLIGHT:
+            HIGHLIGHT['DROP_PEN'] = wx.Pen(wx.Colour(0, 128, 255))
+            HIGHLIGHT['DROP_BRUSH'] = wx.Brush(wx.Colour(0, 128, 255, 128))
+            HIGHLIGHT['RESIZE_PEN'] = wx.Pen(wx.Colour(200, 200, 200))
+            HIGHLIGHT['RESIZE_BRUSH'] = wx.Brush(wx.Colour(200, 200, 200))
 
     def GetIndex(self):
         """
@@ -239,7 +250,7 @@ class DebugVariableViewer:
         Function that refresh buttons position in Viewer
         """
         # Get Viewer size
-        width, height = self.GetSize()
+        width, _height = self.GetSize()
 
         # Buttons are align right so we calculate buttons positions in
         # reverse order
@@ -253,7 +264,7 @@ class DebugVariableViewer:
             if button.IsEnabled():
                 # Update button position according to button width and offset
                 # on x coordinate
-                w, h = button.GetSize()
+                w, _h = button.GetSize()
                 button.SetPosition(width - 5 - w - x_offset, 5)
                 # Update offset on x coordinate
                 x_offset += w + 2
@@ -270,8 +281,8 @@ class DebugVariableViewer:
         width, height = self.GetSize()
 
         # Set dc styling for drop before or drop after highlight
-        dc.SetPen(HIGHLIGHT_DROP_PEN)
-        dc.SetBrush(HIGHLIGHT_DROP_BRUSH)
+        dc.SetPen(HIGHLIGHT['DROP_PEN'])
+        dc.SetBrush(HIGHLIGHT['DROP_BRUSH'])
 
         # Draw line at upper side of Viewer if highlight is drop before
         if self.Highlight == HIGHLIGHT_BEFORE:
@@ -300,7 +311,7 @@ class DebugVariableViewer:
                 srcY = srcBBox.y - (srcPos.y if destBBox.y == 0 else 0)
 
                 srcBmp = _convert_agg_to_wx_bitmap(
-                            srcPanel.get_renderer(), None)
+                    srcPanel.get_renderer(), None)
                 srcDC = wx.MemoryDC()
                 srcDC.SelectObject(srcBmp)
 
@@ -363,10 +374,10 @@ class DebugVariableViewer:
         @param y: Y coordinate of mouse pointer
         """
         # Get Viewer size
-        width, height = self.GetSize()
+        _width, height = self.GetSize()
 
         # Mouse is in the first half of Viewer
-        if y < height / 2:
+        if y < height // 2:
             # If Viewer is the upper one, draw drop before highlight
             if self.ParentWindow.IsViewerFirst(self):
                 self.SetHighlight(HIGHLIGHT_BEFORE)
@@ -422,4 +433,4 @@ class DebugVariableViewer:
         @param item: Item to release value
         """
         self.ParentWindow.ReleaseDataValue(
-                item.GetVariable().upper())
+            item.GetVariable().upper())

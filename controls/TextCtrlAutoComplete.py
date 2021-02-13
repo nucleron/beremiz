@@ -22,8 +22,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from six.moves import cPickle
 import wx
-import cPickle
 
 MAX_ITEM_COUNT = 10
 MAX_ITEM_SHOWN = 6
@@ -37,11 +39,12 @@ else:
 
 class PopupWithListbox(wx.PopupWindow):
 
-    def __init__(self, parent, choices=[]):
+    def __init__(self, parent, choices=None):
         wx.PopupWindow.__init__(self, parent, wx.BORDER_SIMPLE)
 
         self.ListBox = wx.ListBox(self, -1, style=wx.LB_HSCROLL | wx.LB_SINGLE | wx.LB_SORT)
 
+        choices = [] if choices is None else choices
         self.SetChoices(choices)
 
         self.ListBox.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)

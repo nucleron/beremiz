@@ -21,17 +21,24 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+
+from __future__ import absolute_import
+from __future__ import print_function
 import socket
 import threading
-from util import Zeroconf
-
-service_type = '_PYRO._tcp.local.'
+import zeroconf
 
 
-class ServicePublisher():
-    def __init__(self):
+service_type = '_Beremiz._tcp.local.'
+
+
+class ServicePublisher(object):
+    def __init__(self, protocol):
         # type: fully qualified service type name
-        self.serviceproperties = {'description': 'Beremiz remote PLC'}
+        self.serviceproperties = {
+            'description': 'Beremiz remote PLC',
+            'protocol': protocol
+        }
 
         self.name = None
         self.ip_32b = None
@@ -43,53 +50,58 @@ class ServicePublisher():
     def RegisterService(self, name, ip, port):
         try:
             self._RegisterService(name, ip, port)
-        except Exception, e:
+        except Exception:
             self.retrytimer = threading.Timer(2, self.RegisterService, [name, ip, port])
             self.retrytimer.start()
 
     def _RegisterService(self, name, ip, port):
         # name: fully qualified service name
-        self.service_name = 'Beremiz_%s.%s' % (name, service_type)
+        self.service_name = '%s.%s' % (name, service_type)
         self.name = name
         self.port = port
 
-        self.server = Zeroconf.Zeroconf(ip)
-        print "MDNS brodcasting on :"+ip
-
         if ip == "0.0.0.0":
+            print("MDNS brodcasted on all interfaces")
+            interfaces = zeroconf.InterfaceChoice.All
             ip = self.gethostaddr()
-        print "MDNS brodcasted service address :"+ip
+        else:
+            interfaces = [ip]
+
+        self.server = zeroconf.Zeroconf(interfaces=interfaces)
+
+        print("MDNS brodcasted service address :" + ip)
         self.ip_32b = socket.inet_aton(ip)
 
-        self.server.registerService(
-             Zeroconf.ServiceInfo(service_type,
-                                  self.service_name,
-                                  self.ip_32b,
-                                  self.port,
-                                  properties=self.serviceproperties))
+        self.server.register_service(
+            zeroconf.ServiceInfo(service_type,
+                                 self.service_name,
+                                 self.ip_32b,
+                                 self.port,
+                                 properties=self.serviceproperties))
         self.retrytimer = None
 
     def UnRegisterService(self):
         if self.retrytimer is not None:
             self.retrytimer.cancel()
 
-        self.server.unregisterService(
-                                      Zeroconf.ServiceInfo(service_type,
-                                                           self.service_name,
-                                                           self.ip_32b,
-                                                           self.port,
-                                                           properties=self.serviceproperties))
-        self.server.close()
-        self.server = None
+        if self.server is not None:
+            self.server.unregister_service(
+                zeroconf.ServiceInfo(service_type,
+                                     self.service_name,
+                                     self.ip_32b,
+                                     self.port,
+                                     properties=self.serviceproperties))
+            self.server.close()
+            self.server = None
 
     def gethostaddr(self, dst='224.0.1.41'):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             s.connect((dst, 7))
-            (host, port) = s.getsockname()
+            (host, _port) = s.getsockname()
             s.close()
             if host != '0.0.0.0':
                 return host
-        except Exception, e:
+        except Exception:
             pass
         return socket.gethostbyname(socket.gethostname())

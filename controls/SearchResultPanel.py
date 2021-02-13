@@ -22,7 +22,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from types import TupleType
+
+from __future__ import absolute_import
+from functools import reduce
 
 import wx
 import wx.lib.buttons
@@ -30,6 +32,7 @@ import wx.lib.agw.customtreectrl as CT
 
 from PLCControler import *
 from util.BitmapLibrary import GetBitmap
+from plcopen.types_enums import GetElementType
 
 
 def GenerateName(infos):
@@ -54,13 +57,6 @@ def GenerateName(infos):
 
 
 class SearchResultPanel(wx.Panel):
-
-    if wx.VERSION < (2, 6, 0):
-        def Bind(self, event, function, id=None):
-            if id is not None:
-                event(self, id, function)
-            else:
-                event(self, function)
 
     def _init_coll_MainSizer_Items(self, parent):
         parent.AddSizer(self.HeaderSizer, 0, border=0, flag=wx.GROW)
@@ -88,10 +84,6 @@ class SearchResultPanel(wx.Panel):
         self.SetSizer(self.MainSizer)
 
     def _init_ctrls(self, prnt):
-        wx.Panel.__init__(self, id=ID_SEARCHRESULTPANEL,
-                          name='SearchResultPanel', parent=prnt, pos=wx.Point(0, 0),
-                          size=wx.Size(0, 0), style=wx.TAB_TRAVERSAL)
-
         self.HeaderLabel = wx.StaticText(id=ID_SEARCHRESULTPANELHEADERLABEL,
                                          name='HeaderLabel', parent=self,
                                          pos=wx.Point(0, 0), size=wx.Size(0, 17), style=0)
@@ -114,6 +106,11 @@ class SearchResultPanel(wx.Panel):
         self._init_sizers()
 
     def __init__(self, parent, window):
+        wx.Panel.__init__(self, id=ID_SEARCHRESULTPANEL,
+                          name='SearchResultPanel', parent=parent,
+                          pos=wx.Point(0, 0),
+                          size=wx.Size(0, 0), style=wx.TAB_TRAVERSAL)
+
         self.ParentWindow = window
 
         self._init_ctrls(parent)
@@ -133,7 +130,8 @@ class SearchResultPanel(wx.Panel):
                 ("DATATYPE",       ITEM_DATATYPE),
                 ("ACTION",         "action_block"),
                 ("IL",             "IL"),
-                ("ST",             "ST")]:
+                ("ST",             "ST"),
+                ("FILE",           ITEM_CONFNODE)]:
             self.TreeImageDict[itemtype] = self.TreeImageList.Add(GetBitmap(imgname))
 
         for itemtype in ["function", "functionBlock", "program",
@@ -172,6 +170,9 @@ class SearchResultPanel(wx.Panel):
     def RefreshView(self):
         self.SearchResultsTree.DeleteAllItems()
         if self.Criteria is None:
+            self.SearchResultsTree.AddRoot("")
+            root = self.SearchResultsTree.GetRootItem()
+            root.SetHilight(False)
             self.HeaderLabel.SetLabel(_("No search results available."))
             self.ResetButton.Enable(False)
         else:
@@ -190,7 +191,7 @@ class SearchResultPanel(wx.Panel):
 
                 words = tagname.split("::")
 
-                element_type = self.ParentWindow.Controler.GetElementType(tagname)
+                element_type = GetElementType(tagname)
                 if element_type == ITEM_POU:
                     element_type = self.ParentWindow.Controler.GetPouType(words[1])
 
@@ -202,7 +203,12 @@ class SearchResultPanel(wx.Panel):
 
                 children = element_infos.setdefault("children", [])
                 for infos, start, end, text in results:
-                    if infos[1] == "name" or element_type == ITEM_DATATYPE:
+                    if len(words) == 1:  # CTN match
+                        child_name = {"body": str(start[0])+":",
+                                      "var_inout": _("Variable:")}[infos[1]]
+                        child_type = {"body": ITEM_CONFNODE,
+                                      "var_inout": "var_inout"}[infos[1]]
+                    elif infos[1] == "name" or element_type == ITEM_DATATYPE:
                         child_name = GenerateName(infos[1:])
                         child_type = element_type
                     else:
@@ -232,6 +238,7 @@ class SearchResultPanel(wx.Panel):
                     }
                     children.append(child_infos)
 
+                # not Project node
                 if len(words) > 2:
                     for _element_infos in search_results_tree_children:
                         if _element_infos["name"] == words[1]:
@@ -240,7 +247,7 @@ class SearchResultPanel(wx.Panel):
                             break
                     if element_type == ITEM_RESOURCE:
                         search_results_tree_children.append(element_infos)
-                else:
+                else:  # Project node or CTN
                     search_results_tree_children.append(element_infos)
 
             if matches_number < 2:
@@ -271,7 +278,6 @@ class SearchResultPanel(wx.Panel):
         return OnTextCtrlDClick
 
     def GenerateSearchResultsTreeBranch(self, root, infos):
-        to_delete = []
         if infos["name"] == "body":
             item_name = "%d:" % infos["data"][1][0]
         else:
@@ -303,7 +309,7 @@ class SearchResultPanel(wx.Panel):
         if text is not None:
             text_ctrl_style = wx.BORDER_NONE | wx.TE_READONLY | wx.TE_RICH2
             if wx.Platform != '__WXMSW__' or len(text.splitlines()) > 1:
-                text_ctrl_style |= wx.TE_MULTILINE
+                text_ctrl_style |= wx.TE_MULTILINE | wx.TE_NO_VSCROLL
             text_ctrl = wx.TextCtrl(id=-1, parent=self.SearchResultsTree, pos=wx.Point(0, 0),
                                     value=text, style=text_ctrl_style)
             width, height = text_ctrl.GetTextExtent(text)
@@ -315,10 +321,7 @@ class SearchResultPanel(wx.Panel):
             text_ctrl.SetStyle(start_idx, end_idx, style)
             self.SearchResultsTree.SetItemWindow(root, text_ctrl)
 
-        if wx.VERSION >= (2, 6, 0):
-            item, root_cookie = self.SearchResultsTree.GetFirstChild(root)
-        else:
-            item, root_cookie = self.SearchResultsTree.GetFirstChild(root, 0)
+        item, root_cookie = self.SearchResultsTree.GetFirstChild(root)
         for child in infos["children"]:
             if item is None:
                 item = self.SearchResultsTree.AppendItem(root, "")
@@ -328,12 +331,12 @@ class SearchResultPanel(wx.Panel):
 
     def ShowSearchResults(self, item):
         data = self.SearchResultsTree.GetPyData(item)
-        if isinstance(data, TupleType):
+        if isinstance(data, tuple):
             search_results = [data]
         else:
             search_results = self.SearchResults.get(data, [])
         self.ParentWindow.ClearHighlights(SEARCH_RESULT_HIGHLIGHT)
-        for infos, start, end, text in search_results:
+        for infos, start, end, _text in search_results:
             self.ParentWindow.ShowSearchResult(infos, start, end)
 
     def OnSearchResultsTreeItemActivated(self, event):

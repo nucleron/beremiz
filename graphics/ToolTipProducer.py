@@ -22,6 +22,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from controls.CustomToolTip import CustomToolTip, TOOLTIP_WAIT_PERIOD
@@ -32,7 +34,7 @@ from controls.CustomToolTip import CustomToolTip, TOOLTIP_WAIT_PERIOD
 # -------------------------------------------------------------------------------
 
 
-class ToolTipProducer:
+class ToolTipProducer(object):
     """
     Class that implements an element that generate Tool Tip
     """

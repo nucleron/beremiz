@@ -23,16 +23,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import os
 import re
 import operator
-from util.ProcessLogger import ProcessLogger
 import hashlib
+from functools import reduce
+from util.ProcessLogger import ProcessLogger
 
-includes_re = re.compile('\s*#include\s*["<]([^">]*)[">].*')
+
+includes_re = re.compile(r'\s*#include\s*["<]([^">]*)[">].*')
 
 
-class toolchain_gcc():
+class toolchain_gcc(object):
     """
     This abstract class contains GCC specific code.
     It cannot be used as this and should be inherited in a target specific
@@ -68,36 +72,33 @@ class toolchain_gcc():
         """
         return self.CTRInstance.GetTarget().getcontent().getLinker()
 
-    def GetBinaryCode(self):
-        try:
-            return open(self.exe_path, "rb").read()
-        except Exception, e:
-            return None
+    def GetBinaryPath(self):
+        return self.bin_path
 
     def _GetMD5FileName(self):
         return os.path.join(self.buildpath, "lastbuildPLC.md5")
 
-    def ResetBinaryCodeMD5(self):
+    def ResetBinaryMD5(self):
         self.md5key = None
         try:
             os.remove(self._GetMD5FileName())
-        except Exception, e:
+        except Exception:
             pass
 
-    def GetBinaryCodeMD5(self):
+    def GetBinaryMD5(self):
         if self.md5key is not None:
             return self.md5key
         else:
             try:
                 return open(self._GetMD5FileName(), "r").read()
-            except Exception, e:
+            except Exception:
                 return None
 
     def SetBuildPath(self, buildpath):
         if self.buildpath != buildpath:
             self.buildpath = buildpath
-            self.exe = self.CTRInstance.GetProjectName() + self.extension
-            self.exe_path = os.path.join(self.buildpath, self.exe)
+            self.bin = self.CTRInstance.GetProjectName() + self.extension
+            self.bin_path = os.path.join(self.buildpath, self.bin)
             self.md5key = None
             self.srcmd5 = {}
 
@@ -141,15 +142,12 @@ class toolchain_gcc():
 
     def calc_source_md5(self):
         wholesrcdata = ""
-        for Location, CFilesAndCFLAGS, DoCalls in self.CTRInstance.LocationCFilesAndCFLAGS:
+        for _Location, CFilesAndCFLAGS, _DoCalls in self.CTRInstance.LocationCFilesAndCFLAGS:
             # Get CFiles list to give it to makefile
-            for CFile, CFLAGS in CFilesAndCFLAGS:
+            for CFile, _CFLAGS in CFilesAndCFLAGS:
                 CFileName = os.path.basename(CFile)
                 wholesrcdata += self.concat_deps(CFileName)
         return hashlib.md5(wholesrcdata).hexdigest()
-
-    def calc_md5(self):
-        return hashlib.md5(self.GetBinaryCode()).hexdigest()
 
     def build(self):
         # Retrieve compiler and linker
@@ -161,8 +159,8 @@ class toolchain_gcc():
         # ----------------- GENERATE OBJECT FILES ------------------------
         obns = []
         objs = []
-        relink = self.GetBinaryCode() is None
-        for Location, CFilesAndCFLAGS, DoCalls in self.CTRInstance.LocationCFilesAndCFLAGS:
+        relink = not os.path.exists(self.bin_path)
+        for Location, CFilesAndCFLAGS, _DoCalls in self.CTRInstance.LocationCFilesAndCFLAGS:
             if CFilesAndCFLAGS:
                 if Location:
                     self.CTRInstance.logger.write(".".join(map(str, Location))+" :\n")
@@ -184,9 +182,9 @@ class toolchain_gcc():
 
                         self.CTRInstance.logger.write("   [CC]  "+bn+" -> "+obn+"\n")
 
-                        status, result, err_result = ProcessLogger(
+                        status, _result, _err_result = ProcessLogger(
                             self.CTRInstance.logger,
-                            "\"%s\" -c \"%s\" -o \"%s\" %s %s" %
+                            "\"%s\" -c \"%s\" -o \"%s\" -O2 %s %s" %
                             (self.compiler, CFile, objectfilename, Builder_CFLAGS, CFLAGS)
                         ).spin()
 
@@ -204,21 +202,19 @@ class toolchain_gcc():
         # Link all the object files into one binary file
         self.CTRInstance.logger.write(_("Linking :\n"))
         if relink:
-            objstring = []
-
             # Generate list .o files
             listobjstring = '"' + '"  "'.join(objs) + '"'
 
             ALLldflags = ' '.join(self.getBuilderLDFLAGS())
 
-            self.CTRInstance.logger.write("   [CC]  " + ' '.join(obns)+" -> " + self.exe + "\n")
+            self.CTRInstance.logger.write("   [CC]  " + ' '.join(obns)+" -> " + self.bin + "\n")
 
-            status, result, err_result = ProcessLogger(
+            status, _result, _err_result = ProcessLogger(
                 self.CTRInstance.logger,
                 "\"%s\" %s -o \"%s\" %s" %
                 (self.linker,
                  listobjstring,
-                 self.exe_path,
+                 self.bin_path,
                  ALLldflags)
             ).spin()
 
@@ -226,10 +222,10 @@ class toolchain_gcc():
                 return False
 
         else:
-            self.CTRInstance.logger.write("   [pass]  " + ' '.join(obns)+" -> " + self.exe + "\n")
+            self.CTRInstance.logger.write("   [pass]  " + ' '.join(obns)+" -> " + self.bin + "\n")
 
         # Calculate md5 key and get data for the new created PLC
-        self.md5key = self.calc_md5()
+        self.md5key = hashlib.md5(open(self.bin_path, "rb").read()).hexdigest()
 
         # Store new PLC filename based on md5 key
         f = open(self._GetMD5FileName(), "w")

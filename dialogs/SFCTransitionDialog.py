@@ -23,10 +23,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+from __future__ import absolute_import
 import wx
 
 from graphics.SFC_Objects import SFC_Transition
-from BlockPreviewDialog import BlockPreviewDialog
+from dialogs.BlockPreviewDialog import BlockPreviewDialog
 
 # -------------------------------------------------------------------------------
 #                        Set Transition Parameters Dialog
@@ -196,7 +197,7 @@ class SFCTransitionDialog(BlockPreviewDialog):
         @param event: wx.RadioButtonEvent
         """
         # Refresh sensibility of control associated to transition types
-        for type, (radio, control) in self.TypeRadioButtons.iteritems():
+        for _type, (radio, control) in self.TypeRadioButtons.iteritems():
             if control is not None:
                 control.Enable(radio.GetValue())
 
@@ -228,7 +229,7 @@ class SFCTransitionDialog(BlockPreviewDialog):
         self.RefreshPreview()
         event.Skip()
 
-    def RefreshPreview(self):
+    def DrawPreview(self):
         """
         Refresh preview panel of graphic element
         Override BlockPreviewDialog function
@@ -239,4 +240,4 @@ class SFCTransitionDialog(BlockPreviewDialog):
         self.Element.SetPriority(self.Priority.GetValue())
 
         # Call BlockPreviewDialog function
-        BlockPreviewDialog.RefreshPreview(self)
+        BlockPreviewDialog.DrawPreview(self)

@@ -22,8 +22,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from functools import reduce
 import wx
 import wx.stc
+from six.moves import xrange
 
 if wx.Platform == '__WXMSW__':
     faces = {
@@ -36,7 +40,7 @@ if wx.Platform == '__WXMSW__':
 else:
     faces = {
         'times': 'Times',
-        'mono':  'Courier',
+        'mono':  'FreeMono',
         'helv':  'Helvetica',
         'other': 'new century schoolbook',
         'size':  12,
@@ -95,12 +99,11 @@ class CustomStyledTextCtrl(wx.stc.StyledTextCtrl):
     def OnMotion(self, event):
         if wx.Platform == '__WXMSW__':
             if not event.Dragging():
-                x, y = event.GetPosition()
+                x, _y = event.GetPosition()
                 margin_width = reduce(
-                        lambda x, y: x + y,
-                        [self.GetMarginWidth(i)
-                         for i in xrange(3)],
-                        0)
+                    lambda x, y: x + y,
+                    [self.GetMarginWidth(i) for i in xrange(3)],
+                    0)
                 if x <= margin_width:
                     self.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
                 else:

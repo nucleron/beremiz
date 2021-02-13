@@ -1,22 +1,18 @@
-image: python:2.7
+image: skvorl/beremiz-requirements
 
 pipelines:
-  custom: # Pipelines that are triggered manually
-    checks: # The name that is displayed in the list in the Bitbucket Cloud GUI
-        - step:
-            caches:
-                - pip
-            script: # Modify the commands below to build your repository.
-              - pip install pycodestyle
-              - python --version
-              - ./tests/tools/check_source.sh
-
-
   default:
-    - step:
-        caches:
-          - pip
-        script: # Modify the commands below to build your repository.
-          - pip install pycodestyle
-          - python --version
-          - ./tests/tools/check_source.sh
+    - parallel:
+        - step:
+            name: Codestyle checks
+            script:
+              - ln -s /CanFestival-3 $BITBUCKET_CLONE_DIR/../CanFestival-3
+              - /usr/bin/python --version
+              - ./tests/tools/check_source.sh
+        - step:
+            name: Application tests
+            max-time: 10
+            script:
+              - ln -s /CanFestival-3 $BITBUCKET_CLONE_DIR/../CanFestival-3
+              - ./tests/tools/run_python_tests.sh
+    

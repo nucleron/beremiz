@@ -23,6 +23,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from __future__ import division
 import re
 
 import wx
@@ -38,16 +41,8 @@ MINUTE = 60 * SECOND
 HOUR = 60 * MINUTE
 DAY = 24 * HOUR
 
-IEC_TIME_MODEL = re.compile("(?:T|TIME)#(-)?(?:(%(float)s)D_?)?(?:(%(float)s)H_?)?(?:(%(float)s)M(?!S)_?)?(?:(%(float)s)S_?)?(?:(%(float)s)MS)?$" % {"float": "[0-9]+(?:\.[0-9]+)?"})
+IEC_TIME_MODEL = re.compile(r"(?:T|TIME)#(-)?(?:(%(float)s)D_?)?(?:(%(float)s)H_?)?(?:(%(float)s)M(?!S)_?)?(?:(%(float)s)S_?)?(?:(%(float)s)MS)?$" % {"float": r"[0-9]+(?:\.[0-9]+)?"})
 
-CONTROLS = [
-    ("Days", _('Days:')),
-    ("Hours", _('Hours:')),
-    ("Minutes", _('Minutes:')),
-    ("Seconds", _('Seconds:')),
-    ("Milliseconds", _('Milliseconds:')),
-    ("Microseconds", _('Microseconds:')),
-]
 
 # -------------------------------------------------------------------------------
 #                         Edit Duration Value Dialog
@@ -58,6 +53,15 @@ class DurationEditorDialog(wx.Dialog):
 
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, title=_('Edit Duration'))
+
+        CONTROLS = [
+            ("Days", _('Days:')),
+            ("Hours", _('Hours:')),
+            ("Minutes", _('Minutes:')),
+            ("Seconds", _('Seconds:')),
+            ("Milliseconds", _('Milliseconds:')),
+            ("Microseconds", _('Microseconds:')),
+        ]
 
         main_sizer = wx.FlexGridSizer(cols=1, hgap=0, rows=2, vgap=10)
         main_sizer.AddGrowableCol(0)
@@ -117,8 +121,8 @@ class DurationEditorDialog(wx.Dialog):
     def GetControlValueTestFunction(self, control):
         def OnValueChanged(event):
             try:
-                value = float(control.GetValue())
-            except ValueError, e:
+                float(control.GetValue())
+            except ValueError:
                 message = wx.MessageDialog(self, _("Invalid value!\nYou must fill a numeric value."), _("Error"), wx.OK | wx.ICON_ERROR)
                 message.ShowModal()
                 message.Destroy()
@@ -136,16 +140,16 @@ class DurationEditorDialog(wx.Dialog):
 
         not_null = False
         duration = "T#"
-        for value, format in [((int(milliseconds) / DAY),             "%dd"),
-                              ((int(milliseconds) % DAY) / HOUR,      "%dh"),
-                              ((int(milliseconds) % HOUR) / MINUTE,   "%dm"),
-                              ((int(milliseconds) % MINUTE) / SECOND, "%ds")]:
+        for value, format in [((int(milliseconds) // DAY),             "%dd"),
+                              ((int(milliseconds) % DAY) // HOUR,      "%dh"),
+                              ((int(milliseconds) % HOUR) // MINUTE,   "%dm"),
+                              ((int(milliseconds) % MINUTE) // SECOND, "%ds")]:
 
             if value > 0 or not_null:
                 duration += format % value
                 not_null = True
 
-        duration += "%gms" % (milliseconds % SECOND)
+        duration += ("%f" % (milliseconds % SECOND)).rstrip("0").rstrip(".") + "ms"
         return duration
 
     def OnOK(self, event):
@@ -155,10 +159,11 @@ class DurationEditorDialog(wx.Dialog):
         errors = []
         for control, name in [(self.Days, _("days")), (self.Hours, _("hours")),
                               (self.Minutes, _("minutes")), (self.Seconds, _("seconds")),
-                              (self.Milliseconds, _("milliseconds"))]:
+                              (self.Milliseconds, _("milliseconds")),
+                              (self.Microseconds, _("microseconds"))]:
             try:
-                value = float(control.GetValue())
-            except ValueError, e:
+                float(control.GetValue())
+            except ValueError:
                 errors.append(name)
         if len(errors) > 0:
             if len(errors) == 1:

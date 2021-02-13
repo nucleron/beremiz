@@ -22,7 +22,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
+from plcopen.structures import TestIdentifier, IEC_KEYWORDS
 
 # -------------------------------------------------------------------------------
 #                                POU Name Dialog
@@ -31,7 +34,7 @@ import wx
 
 class PouNameDialog(wx.TextEntryDialog):
 
-    def __init__(self, parent, message, caption="Please enter text", defaultValue="",
+    def __init__(self, parent, message, caption=_("Please enter text"), defaultValue="",
                  style=wx.OK | wx.CANCEL | wx.CENTRE, pos=wx.DefaultPosition):
         wx.TextEntryDialog.__init__(self, parent, message, caption, defaultValue, style, pos)
 

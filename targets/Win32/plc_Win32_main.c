@@ -54,11 +54,19 @@ void PLC_SetTimer(unsigned long long next, unsigned long long period)
     }
 }
 
+int PLC_shutdown;
+
+int ForceSaveRetainReq(void) {
+    return PLC_shutdown;
+}
+
 /* Variable used to stop plcloop thread */
 void PlcLoop()
 {
-    while(WaitForSingleObject(PLC_timer, INFINITE) == WAIT_OBJECT_0)
-    {
+    PLC_shutdown = 0;
+    while(!PLC_shutdown) {
+        if (WaitForSingleObject(PLC_timer, INFINITE) != WAIT_OBJECT_0)
+            PLC_shutdown = 1;
         PLC_timer_notify();
     }
 }
@@ -239,41 +247,6 @@ void UnLockPython(void)
 void LockPython(void)
 {
 	WaitForSingleObject(python_sem, INFINITE);
-}
-
-void InitRetain(void)
-{
-}
-
-void CleanupRetain(void)
-{
-}
-
-int CheckRetainBuffer(void)
-{
-	return 1;
-}
-
-void ValidateRetainBuffer(void)
-{
-}
-
-void InValidateRetainBuffer(void)
-{
-}
-
-void Retain(unsigned int offset, unsigned int count, void * p)
-{
-    /*
-    unsigned int position;
-    for(position=0; position<count; position++ ){
-        printf("%d : 0x%2.2x\n", offset+position, ((char*)p)[position]);
-    }
-    */
-}
-
-void Remind(unsigned int offset, unsigned int count, void *p)
-{
 }
 
 static void __attribute__((constructor))

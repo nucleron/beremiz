@@ -1,9 +1,9 @@
-import gluon.contrib.simplejson as simplejson
-import types
+from __future__ import absolute_import
 import sys
+import gluon.contrib.simplejson as simplejson
 
 
-class JSONRPCServiceBase:
+class JSONRPCServiceBase(object):
 
     def __init__(self):
         self.methods = {}
@@ -31,12 +31,12 @@ class JSONRPCServiceBase:
             try:
                 result = self.methods[method](*params)
                 return self.response(id, result)
-            except BaseException:
-                etype, eval, etb = sys.exc_info()
-                return self.error(id, 100, '%s: %s' % (etype.__name__, eval))
             except Exception:
-                etype, eval, etb = sys.exc_info()
+                etype, eval, _etb = sys.exc_info()
                 return self.error(id, 100, 'Exception %s: %s' % (etype, eval))
+            except BaseException:
+                etype, eval, _etb = sys.exc_info()
+                return self.error(id, 100, '%s: %s' % (etype.__name__, eval))
         else:
             return self.error(id, 100, 'method "%s" does not exist' % method)
 

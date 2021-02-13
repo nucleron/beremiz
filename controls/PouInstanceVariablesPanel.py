@@ -22,19 +22,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from __future__ import division
 from collections import namedtuple
 
 import wx
 import wx.lib.agw.customtreectrl as CT
 import wx.lib.buttons
 
-from PLCControler import \
-    ITEMS_VARIABLE, \
-    ITEM_CONFIGURATION, \
-    ITEM_RESOURCE, \
-    ITEM_POU, \
-    ITEM_TRANSITION, \
-    ITEM_ACTION
+from plcopen.types_enums import *
 
 from util.BitmapLibrary import GetBitmap
 
@@ -66,21 +63,21 @@ class CustomTreeCtrlWithRightImage(CT.CustomTreeCtrl):
         height = CT.CustomTreeCtrl.GetLineHeight(self, item)
         rightimages = item.GetRightImages()
         if len(rightimages) > 0:
-            r_image_w, r_image_h = self._imageListRight.GetSize(rightimages[0])
+            _r_image_w, r_image_h = self._imageListRight.GetSize(rightimages[0])
             return max(height, r_image_h + 8)
         return height
 
     def GetItemRightImagesBBox(self, item):
         rightimages = item.GetRightImages()
         if len(rightimages) > 0:
-            w, h = self.GetClientSize()
+            w, _h = self.GetClientSize()
             total_h = self.GetLineHeight(item)
             r_image_w, r_image_h = self._imageListRight.GetSize(rightimages[0])
 
             bbox_width = (r_image_w + 4) * len(rightimages) + 4
             bbox_height = r_image_h + 8
             bbox_x = w - bbox_width
-            bbox_y = item.GetY() + ((total_h > r_image_h) and [(total_h-r_image_h)/2] or [0])[0]
+            bbox_y = item.GetY() + ((total_h > r_image_h) and [(total_h-r_image_h)//2] or [0])[0]
 
             return wx.Rect(bbox_x, bbox_y, bbox_width, bbox_height)
 
@@ -108,13 +105,11 @@ class CustomTreeCtrlWithRightImage(CT.CustomTreeCtrl):
         rightimages = item.GetRightImages()
         if len(rightimages) > 0:
             images_bbx = self.GetItemRightImagesBBox(item)
-            r_image_w, r_image_h = self._imageListRight.GetSize(rightimages[0])
+            r_image_w, _r_image_h = self._imageListRight.GetSize(rightimages[0])
 
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
             dc.SetPen(wx.TRANSPARENT_PEN)
 
-            bg_width = (r_image_w + 4) * len(rightimages) + 4
-            bg_height = r_image_h + 8
             dc.DrawRectangle(images_bbx.x, images_bbx.y,
                              images_bbx.width, images_bbx.height)
             x_pos = images_bbx.x + 4
@@ -220,7 +215,7 @@ class PouInstanceVariablesPanel(wx.Panel):
             if tagname == "Project":
                 config_name = self.Controller.GetProjectMainConfigurationName()
                 if config_name is not None:
-                    tagname = self.Controller.ComputeConfigurationName(config_name)
+                    tagname = ComputeConfigurationName(config_name)
             if pou_instance is not None:
                 self.PouInstance = pou_instance
 
@@ -316,20 +311,20 @@ class PouInstanceVariablesPanel(wx.Panel):
     def EditButtonCallback(self, infos):
         var_class = infos.var_class
         if var_class == ITEM_RESOURCE:
-            tagname = self.Controller.ComputeConfigurationResourceName(
+            tagname = ComputeConfigurationResourceName(
                 self.InstanceChoice.GetStringSelection(),
                 infos.name)
         elif var_class == ITEM_TRANSITION:
-            tagname = self.Controller.ComputePouTransitionName(
+            tagname = ComputePouTransitionName(
                 self.PouTagName.split("::")[1],
                 infos.name)
         elif var_class == ITEM_ACTION:
-            tagname = self.Controller.ComputePouActionName(
+            tagname = ComputePouActionName(
                 self.PouTagName.split("::")[1],
                 infos.name)
         else:
             var_class = ITEM_POU
-            tagname = self.Controller.ComputePouName(infos.type)
+            tagname = ComputePouName(infos.type)
         self.ParentWindow.EditProjectElement(var_class, tagname)
 
     def DebugButtonCallback(self, infos):
@@ -346,21 +341,21 @@ class PouInstanceVariablesPanel(wx.Panel):
                 self.ParentWindow.OpenDebugViewer(
                     var_class,
                     var_path,
-                    self.Controller.ComputePouTransitionName(
+                    ComputePouTransitionName(
                         self.PouTagName.split("::")[1],
                         infos.name))
             elif var_class == ITEM_ACTION:
                 self.ParentWindow.OpenDebugViewer(
                     var_class,
                     var_path,
-                    self.Controller.ComputePouActionName(
+                    ComputePouActionName(
                         self.PouTagName.split("::")[1],
                         infos.name))
             else:
                 self.ParentWindow.OpenDebugViewer(
                     var_class,
                     var_path,
-                    self.Controller.ComputePouName(infos.type))
+                    ComputePouName(infos.type))
 
     def DebugButtonDClickCallback(self, infos):
         if self.InstanceChoice.GetSelection() != -1:
@@ -375,8 +370,8 @@ class PouInstanceVariablesPanel(wx.Panel):
         self.InstanceChoice.SetFocusFromKbd()
         size = self.InstanceChoice.GetSize()
         event = wx.MouseEvent(wx.EVT_LEFT_DOWN._getEvtType())
-        event.x = size.width / 2
-        event.y = size.height / 2
+        event.x = size.width // 2
+        event.y = size.height // 2
         event.SetEventObject(self.InstanceChoice)
         # event = wx.KeyEvent(wx.EVT_KEY_DOWN._getEvtType())
         # event.m_keyCode = wx.WXK_SPACE
@@ -420,19 +415,19 @@ class PouInstanceVariablesPanel(wx.Panel):
                     instance_path = self.InstanceChoice.GetStringSelection()
                     if item_infos.var_class == ITEM_RESOURCE:
                         if instance_path != "":
-                            tagname = self.Controller.ComputeConfigurationResourceName(
-                                           instance_path,
-                                           item_infos.name)
+                            tagname = ComputeConfigurationResourceName(
+                                instance_path,
+                                item_infos.name)
                         else:
                             tagname = None
                     else:
                         parent_infos = self.VariablesList.GetPyData(selected_item.GetParent())
                         if item_infos.var_class == ITEM_ACTION:
-                            tagname = self.Controller.ComputePouActionName(parent_infos.type, item_infos.name)
+                            tagname = ComputePouActionName(parent_infos.type, item_infos.name)
                         elif item_infos.var_class == ITEM_TRANSITION:
-                            tagname = self.Controller.ComputePouTransitionName(parent_infos.type, item_infos.name)
+                            tagname = ComputePouTransitionName(parent_infos.type, item_infos.name)
                         else:
-                            tagname = self.Controller.ComputePouName(item_infos.type)
+                            tagname = ComputePouName(item_infos.type)
                     if tagname is not None:
                         if instance_path != "":
                             item_path = "%s.%s" % (instance_path, item_infos.name)

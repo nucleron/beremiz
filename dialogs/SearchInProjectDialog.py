@@ -23,7 +23,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import re
+
+from __future__ import absolute_import
 import wx
 from plcopen.plcopen import *
 from util.TranslationCatalogs import NoTranslate
@@ -109,7 +110,7 @@ class SearchInProjectDialog(wx.Dialog):
 
         self.SetSizer(main_sizer)
 
-        for name, label in GetElementsChoices():
+        for _name, label in GetElementsChoices():
             self.ElementsList.Append(_(label))
 
         self.Fit()
@@ -154,7 +155,7 @@ class SearchInProjectDialog(wx.Dialog):
             infos["filter"] = "all"
         elif self.OnlyElements.GetValue():
             infos["filter"] = []
-            for index, (name, label) in enumerate(GetElementsChoices()):
+            for index, (name, _label) in enumerate(GetElementsChoices()):
                 if self.ElementsList.IsChecked(index):
                     infos["filter"].append(name)
 

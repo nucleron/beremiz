@@ -23,6 +23,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 from plcopen.plcopen import *
 
@@ -31,7 +33,7 @@ class FindInPouDialog(wx.Dialog):
 
     def _init_icon(self, parent):
         if parent and parent.icon:
-                self.SetIcon(parent.icon)
+            self.SetIcon(parent.icon)
 
     def __init__(self, parent):
         wx.Dialog.__init__(
@@ -66,7 +68,7 @@ class FindInPouDialog(wx.Dialog):
 
         direction_staticbox = wx.StaticBox(panel, label=_("Direction"))
         direction_staticboxsizer = wx.StaticBoxSizer(
-              direction_staticbox, wx.VERTICAL)
+            direction_staticbox, wx.VERTICAL)
         params_sizer.AddSizer(direction_staticboxsizer, 1, border=5,
                               flag=wx.GROW | wx.RIGHT)
 
@@ -81,7 +83,7 @@ class FindInPouDialog(wx.Dialog):
 
         options_staticbox = wx.StaticBox(panel, label=_("Options"))
         options_staticboxsizer = wx.StaticBoxSizer(
-              options_staticbox, wx.VERTICAL)
+            options_staticbox, wx.VERTICAL)
         params_sizer.AddSizer(options_staticboxsizer, 1, flag=wx.GROW)
 
         self.CaseSensitive = wx.CheckBox(panel, label=_("Case sensitive"))

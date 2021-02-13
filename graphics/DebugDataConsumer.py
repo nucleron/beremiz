@@ -22,6 +22,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from __future__ import division
 import datetime
 
 
@@ -48,7 +51,6 @@ def get_microseconds(value):
     return float(value.days * DAY +
                  value.seconds * SECOND +
                  value.microseconds)
-    return
 
 
 def generate_time(value):
@@ -75,10 +77,10 @@ def generate_time(value):
     not_null = False
 
     for val, format in [
-            (int(microseconds) / DAY, "%dd"),                 # Days
-            ((int(microseconds) % DAY) / HOUR, "%dh"),        # Hours
-            ((int(microseconds) % HOUR) / MINUTE, "%dm"),     # Minutes
-            ((int(microseconds) % MINUTE) / SECOND, "%ds")]:  # Seconds
+            (int(microseconds) // DAY, "%dd"),                 # Days
+            ((int(microseconds) % DAY) // HOUR, "%dh"),        # Hours
+            ((int(microseconds) % HOUR) // MINUTE, "%dm"),     # Minutes
+            ((int(microseconds) % MINUTE) // SECOND, "%ds")]:  # Seconds
 
         # Add value to TIME literal if value is non-null or another non-null
         # value have already be found
@@ -127,9 +129,9 @@ def generate_timeofday(value):
     data = "TOD#"
 
     for val, format in [
-            (int(microseconds) / HOUR, "%2.2d:"),               # Hours
-            ((int(microseconds) % HOUR) / MINUTE, "%2.2d:"),    # Minutes
-            ((int(microseconds) % MINUTE) / SECOND, "%2.2d."),  # Seconds
+            (int(microseconds) // HOUR, "%2.2d:"),               # Hours
+            ((int(microseconds) % HOUR) // MINUTE, "%2.2d:"),    # Minutes
+            ((int(microseconds) % MINUTE) // SECOND, "%2.2d."),  # Seconds
             (microseconds % SECOND, "%6.6d")]:                  # Microseconds
 
         # Add value to TIME_OF_DAY literal
@@ -156,7 +158,7 @@ TYPE_TRANSLATOR = {
 # -------------------------------------------------------------------------------
 
 
-class DebugDataConsumer:
+class DebugDataConsumer(object):
     """
     Class that implements an element that consumes debug values
     Value update can be inhibited during the time the associated Debug Viewer is

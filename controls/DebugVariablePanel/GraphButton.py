@@ -22,6 +22,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from util.BitmapLibrary import GetBitmap
@@ -31,7 +33,7 @@ from util.BitmapLibrary import GetBitmap
 # -------------------------------------------------------------------------------
 
 
-class GraphButton():
+class GraphButton(object):
     """
     Class that implements a custom button for graphic Viewer
     """

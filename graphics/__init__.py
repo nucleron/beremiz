@@ -23,10 +23,3 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 # Package initialisation
-
-from GraphicCommons import *
-from FBD_Objects import *
-from LD_Objects import *
-from SFC_Objects import *
-from RubberBand import RubberBand
-from DebugDataConsumer import DebugDataConsumer

@@ -22,6 +22,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 import wx.grid
 
@@ -88,8 +90,18 @@ class CustomTable(wx.grid.PyGridTableBase):
         grid.CloseEditControl()
         grid.BeginBatch()
         for current, new, delmsg, addmsg in [
-            (self._rows, self.GetNumberRows(), wx.grid.GRIDTABLE_NOTIFY_ROWS_DELETED, wx.grid.GRIDTABLE_NOTIFY_ROWS_APPENDED),
-            (self._cols, self.GetNumberCols(), wx.grid.GRIDTABLE_NOTIFY_COLS_DELETED, wx.grid.GRIDTABLE_NOTIFY_COLS_APPENDED),
+                (
+                    self._rows,
+                    self.GetNumberRows(),
+                    wx.grid.GRIDTABLE_NOTIFY_ROWS_DELETED,
+                    wx.grid.GRIDTABLE_NOTIFY_ROWS_APPENDED
+                ),
+                (
+                    self._cols,
+                    self.GetNumberCols(),
+                    wx.grid.GRIDTABLE_NOTIFY_COLS_DELETED,
+                    wx.grid.GRIDTABLE_NOTIFY_COLS_APPENDED
+                ),
         ]:
             if new < current:
                 msg = wx.grid.GridTableMessage(self, delmsg, new, current-new)
@@ -192,7 +204,7 @@ class CustomTable(wx.grid.PyGridTableBase):
         if highlight_type is None:
             self.Highlights = {}
         else:
-            for row, row_highlights in self.Highlights.iteritems():
+            for _row, row_highlights in self.Highlights.iteritems():
                 row_items = row_highlights.items()
                 for col, col_highlights in row_items:
                     if highlight_type in col_highlights:

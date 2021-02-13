@@ -22,6 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+from __future__ import absolute_import
 import wx
 
 from controls.CustomStyledTextCtrl import faces
@@ -136,7 +137,7 @@ class CustomToolTip(wx.PopupWindow):
         max_width = max_height = 0
 
         # Create a memory DC for calculating text extent
-        dc = wx.MemoryDC()
+        dc = wx.MemoryDC(wx.EmptyBitmap(1, 1))
         dc.SetFont(self.Font)
 
         # Compute max tip text size
@@ -184,7 +185,7 @@ class CustomToolTip(wx.PopupWindow):
         line_offset = 0
         for line in self.Tip:
             dc.DrawText(line, 2, line_offset + 2)
-            line_width, line_height = dc.GetTextExtent(line)
+            _line_width, line_height = dc.GetTextExtent(line)
             line_offset += line_height
 
         dc.EndDrawing()

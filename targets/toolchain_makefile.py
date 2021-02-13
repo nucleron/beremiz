@@ -22,18 +22,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import os
 import re
 import operator
-from util.ProcessLogger import ProcessLogger
 import hashlib
-
-import time
-
-includes_re = re.compile('\s*#include\s*["<]([^">]*)[">].*')
+from functools import reduce
+from util.ProcessLogger import ProcessLogger
 
 
-class toolchain_makefile():
+includes_re = re.compile(r'\s*#include\s*["<]([^">]*)[">].*')
+
+
+class toolchain_makefile(object):
     def __init__(self, CTRInstance):
         self.CTRInstance = CTRInstance
         self.md5key = None
@@ -45,26 +47,26 @@ class toolchain_makefile():
             self.buildpath = buildpath
             self.md5key = None
 
-    def GetBinaryCode(self):
+    def GetBinaryPath(self):
         return None
 
     def _GetMD5FileName(self):
         return os.path.join(self.buildpath, "lastbuildPLC.md5")
 
-    def ResetBinaryCodeMD5(self):
+    def ResetBinaryMD5(self):
         self.md5key = None
         try:
             os.remove(self._GetMD5FileName())
-        except Exception, e:
+        except Exception:
             pass
 
-    def GetBinaryCodeMD5(self):
+    def GetBinaryMD5(self):
         if self.md5key is not None:
             return self.md5key
         else:
             try:
                 return open(self._GetMD5FileName(), "r").read()
-            except IOError, e:
+            except IOError:
                 return None
 
     def concat_deps(self, bn):
@@ -87,7 +89,7 @@ class toolchain_makefile():
         srcfiles = []
         cflags = []
         wholesrcdata = ""
-        for Location, CFilesAndCFLAGS, DoCalls in self.CTRInstance.LocationCFilesAndCFLAGS:
+        for _Location, CFilesAndCFLAGS, _DoCalls in self.CTRInstance.LocationCFilesAndCFLAGS:
             # Get CFiles list to give it to makefile
             for CFile, CFLAGS in CFilesAndCFLAGS:
                 CFileName = os.path.basename(CFile)
@@ -117,8 +119,8 @@ class toolchain_makefile():
             command = [token % beremizcommand for token in cmd.split(' ')]
 
             # Call Makefile to build PLC code and link it with target specific code
-            status, result, err_result = ProcessLogger(self.CTRInstance.logger,
-                                                       command).spin()
+            status, _result, _err_result = ProcessLogger(self.CTRInstance.logger,
+                                                         command).spin()
             if status:
                 self.md5key = None
                 self.CTRInstance.logger.write_error(_("C compilation failed.\n"))

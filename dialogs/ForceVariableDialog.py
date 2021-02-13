@@ -21,8 +21,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import re
 import datetime
+from builtins import str as text
 
 import wx
 
@@ -67,10 +70,10 @@ MINUTE = 60 * SECOND
 HOUR = 60 * MINUTE
 DAY = 24 * HOUR
 
-IEC_TIME_MODEL = re.compile("(?:(?:T|TIME)#)?(-)?(?:(%(float)s)D_?)?(?:(%(float)s)H_?)?(?:(%(float)s)M(?!S)_?)?(?:(%(float)s)S_?)?(?:(%(float)s)MS)?$" % {"float": "[0-9]+(?:\.[0-9]+)?"})
-IEC_DATE_MODEL = re.compile("(?:(?:D|DATE)#)?([0-9]{4})-([0-9]{2})-([0-9]{2})$")
-IEC_DATETIME_MODEL = re.compile("(?:(?:DT|DATE_AND_TIME)#)?([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]+)?)$")
-IEC_TIMEOFDAY_MODEL = re.compile("(?:(?:TOD|TIME_OF_DAY)#)?([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]+)?)$")
+IEC_TIME_MODEL = re.compile(r"(?:(?:T|TIME)#)?(-)?(?:(%(float)s)D_?)?(?:(%(float)s)H_?)?(?:(%(float)s)M(?!S)_?)?(?:(%(float)s)S_?)?(?:(%(float)s)MS)?$" % {"float": r"[0-9]+(?:\.[0-9]+)?"})
+IEC_DATE_MODEL = re.compile(r"(?:(?:D|DATE)#)?([0-9]{4})-([0-9]{2})-([0-9]{2})$")
+IEC_DATETIME_MODEL = re.compile(r"(?:(?:DT|DATE_AND_TIME)#)?([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]+)?)$")
+IEC_TIMEOFDAY_MODEL = re.compile(r"(?:(?:TOD|TIME_OF_DAY)#)?([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]+)?)$")
 
 
 def gettime(v):
@@ -103,7 +106,7 @@ def getdate(v):
         year, month, day = result.groups()
         try:
             date = datetime.datetime(int(year), int(month), int(day))
-        except ValueError, e:
+        except ValueError:
             return None
         base_date = datetime.datetime(1970, 1, 1)
         return date - base_date
@@ -117,7 +120,7 @@ def getdatetime(v):
         year, month, day, hours, minutes, seconds = result.groups()
         try:
             date = datetime.datetime(int(year), int(month), int(day), int(hours), int(minutes), int(float(seconds)), int((float(seconds) * SECOND) % SECOND))
-        except ValueError, e:
+        except ValueError:
             return None
         base_date = datetime.datetime(1970, 1, 1)
         return date - base_date
@@ -166,43 +169,109 @@ GetTypeValue = {"BOOL": lambda x: {"TRUE": True, "FALSE": False, "0": False, "1"
 # -------------------------------------------------------------------------------
 
 
-class ForceVariableDialog(wx.TextEntryDialog):
+class ForceVariableDialog(wx.Dialog):
+    """Dialog to enforce new value for variables in debug panel"""
 
     def __init__(self, parent, iec_type, defaultValue=""):
-        wx.TextEntryDialog.__init__(
+        """
+        Constructor
+        @param parent: Parent wx.Window of dialog for modal
+        @param iec_type: IEC type of variable (string). For example 'BOOL', 'LREAL'.
+        @param defaultValue: current variable value as string. Default is empty string.
+        """
+        wx.Dialog.__init__(
             self, parent,
-            message=_("Forcing Variable Value"),
-            caption=_("Please enter value for a \"%s\" variable:") % iec_type,
-            defaultValue=defaultValue,
-            style=wx.OK | wx.CANCEL | wx.CENTRE, pos=wx.DefaultPosition)
+            name='ForceVariableDialog',
+            title=_("Please enter value for a \"%s\" variable:") % iec_type,
+            style=wx.DEFAULT_DIALOG_STYLE, pos=wx.DefaultPosition)
 
         self.IEC_Type = iec_type
+        info_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.Bind(wx.EVT_BUTTON, self.OnOK,
-                  self.GetSizer().GetItem(2).GetSizer().GetItem(1).
-                  GetSizer().GetAffirmativeButton())
-        self.ValueTextCtrl = self.GetSizer().GetItem(1).GetWindow()
-        if self.IEC_Type == "BOOL":
-            self.ToggleButton = wx.ToggleButton(self, label=_("Toggle value"))
-            value = GetTypeValue[self.IEC_Type](defaultValue)
-            if value is not None:
-                self.ToggleButton.SetValue(value)
+        message_label = wx.StaticText(self, label=_("Forcing Variable Value"))
+        info_sizer.AddWindow(message_label, border=10,
+                             flag=wx.ALIGN_LEFT | wx.GROW | wx.TOP | wx.LEFT | wx.RIGHT)
 
-            border = self.GetSizer().GetItem(1).GetBorder()
-            self.GetSizer().Insert(before=2, item=self.ToggleButton,
-                                   border=border,
-                                   flag=wx.LEFT | wx.RIGHT | wx.EXPAND)
-            self.Bind(wx.EVT_TOGGLEBUTTON, self.ToggleBoolValue, self.ToggleButton)
+        if GetTypeValue[self.IEC_Type] in [getinteger, getfloat]:
+            self.InitCtrlNumber(info_sizer, defaultValue)
+        elif self.IEC_Type == "BOOL":
+            self.InitCtrlBool(info_sizer, defaultValue)
+        else:
+            self.InitCtrlDefault(info_sizer, defaultValue)
+        self.GetEnteredValue = self.GetValueDefault
 
+        button_sizer = self.CreateButtonSizer(wx.OK | wx.CANCEL | wx.CENTRE)
+        self.Bind(wx.EVT_BUTTON, self.OnOK, button_sizer.GetAffirmativeButton())
+        info_sizer.AddSizer(button_sizer, border=10, flag=wx.ALIGN_RIGHT | wx.ALL)
+
+        self.SetSizer(info_sizer)
         self.Fit()
+        self.ValueCtrl.SetFocus()
 
-    def ToggleBoolValue(self, event):
-        value = self.ToggleButton.GetValue()
-        self.ValueTextCtrl.SetValue(unicode(value))
+    # ---------------------------------
+    # default type methods
+    # ---------------------------------
+
+    def InitCtrlDefault(self, info_sizer, defaultValue):
+        """Add simple text control to change variable of any type"""
+        self.ValueCtrl = wx.TextCtrl(self)
+        self.ValueCtrl.SetValue(defaultValue)
+        info_sizer.AddWindow(self.ValueCtrl, border=10, proportion=1,
+                             flag=wx.ALIGN_LEFT | wx.GROW | wx.TOP | wx.LEFT | wx.RIGHT)
+
+    def GetValueDefault(self):
+        """
+        Returns text representation for a variable value
+        @return: variable value as a string
+        """
+        return text(self.ValueCtrl.GetValue())
+
+    # -----------------------------------------------
+    # integer and floating point number type methods
+    # ----------------------------------------------
+
+    def InitCtrlNumber(self, info_sizer, defaultValue):
+        """Add controls to change float and integer variables"""
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.InitCtrlDefault(sizer, defaultValue)
+        self.SpinButtonCtrl = wx.SpinButton(self, style=wx.HORIZONTAL | wx.SP_WRAP)
+        sizer.AddWindow(self.SpinButtonCtrl, border=10,
+                        flag=wx.ALIGN_LEFT | wx.GROW | wx.TOP | wx.LEFT | wx.RIGHT | wx.EXPAND)
+        self.Bind(wx.EVT_SPIN_UP, self.SpinButtonChanged)
+        self.Bind(wx.EVT_SPIN_DOWN, self.SpinButtonChanged)
+        info_sizer.AddWindow(sizer, proportion=1, flag=wx.EXPAND)
+
+    def SpinButtonChanged(self, evt):
+        """Increment/decrement variable value"""
+        value = self.GetValue()
+        if value is not None:
+            up = evt.GetEventType() == wx.EVT_SPIN_UP._getEvtType()
+            value = value + 1 if up else value - 1
+            self.ValueCtrl.SetValue(text(value))
+        evt.Skip()
+
+    # -----------------------------------------------
+    # bool type related methods
+    # ----------------------------------------------
+
+    def InitCtrlBool(self, info_sizer, defaultValue):
+        """Add button to change value of boolean variable"""
+        self.ValueCtrl = wx.ToggleButton(self, label=_("Toggle value"))
+        value = GetTypeValue[self.IEC_Type](defaultValue)
+        if value is not None:
+            self.ValueCtrl.SetValue(value)
+
+        info_sizer.AddWindow(self.ValueCtrl, border=10,
+                             flag=wx.ALIGN_LEFT | wx.GROW | wx.TOP | wx.LEFT | wx.RIGHT | wx.GROW)
 
     def OnOK(self, event):
+        """
+        Checks new entered value
+        before closing dialog window
+        """
         message = None
-        value = self.ValueTextCtrl.GetValue()
+        ret = True
+        value = self.GetEnteredValue()
         if value == "":
             message = _("You must type a value!")
         elif GetTypeValue[self.IEC_Type](value) is None:
@@ -211,9 +280,13 @@ class ForceVariableDialog(wx.TextEntryDialog):
             dialog = wx.MessageDialog(self, message, _("Error"), wx.OK | wx.ICON_ERROR)
             dialog.ShowModal()
             dialog.Destroy()
+            ret = False
         else:
             self.EndModal(wx.ID_OK)
-        event.Skip()
+        event.Skip(ret)
 
     def GetValue(self):
-        return GetTypeValue[self.IEC_Type](wx.TextEntryDialog.GetValue(self))
+        """
+        Return new enforce value of particular type
+        """
+        return GetTypeValue[self.IEC_Type](self.GetEnteredValue())

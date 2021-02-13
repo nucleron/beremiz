@@ -10,12 +10,22 @@
  *  
  * 
  * */
+#ifdef TARGET_DEBUG_AND_RETAIN_DISABLE
+
+void __init_debug    (void){}
+void __cleanup_debug (void){}
+void __retrieve_debug(void){}
+void __publish_debug (void){}
+
+#else
+
 #include "iec_types_all.h"
 #include "POUS.h"
 /*for memcpy*/
 #include <string.h>
 #include <stdio.h>
 
+#ifndef TARGET_ONLINE_DEBUG_DISABLE
 #define BUFFER_SIZE %(buffer_size)d
 
 /* Atomically accessed variable for buffer state */
@@ -28,6 +38,8 @@ char debug_buffer[BUFFER_SIZE];
 
 /* Buffer's cursor*/
 static char* buffer_cursor = debug_buffer;
+#endif
+
 static unsigned int retain_offset = 0;
 /***
  * Declare programs 
@@ -51,7 +63,7 @@ static dbgvardsc_t dbgvardsc[] = {
 typedef void(*__for_each_variable_do_fp)(dbgvardsc_t*);
 void __for_each_variable_do(__for_each_variable_do_fp fp)
 {
-    int i;
+    unsigned int i;
     for(i = 0; i < sizeof(dbgvardsc)/sizeof(dbgvardsc_t); i++){
         dbgvardsc_t *dsc = &dbgvardsc[i];
         if(dsc->type != UNKNOWN_ENUM) 
@@ -59,37 +71,9 @@ void __for_each_variable_do(__for_each_variable_do_fp fp)
     }
 }
 
-#define __Unpack_case_t(TYPENAME) \
-        case TYPENAME##_ENUM :\
-            *flags = ((__IEC_##TYPENAME##_t *)varp)->flags;\
-            forced_value_p = *real_value_p = &((__IEC_##TYPENAME##_t *)varp)->value;\
-            break;
+#define __Unpack_desc_type dbgvardsc_t
 
-#define __Unpack_case_p(TYPENAME)\
-        case TYPENAME##_O_ENUM :\
-            *flags = __IEC_OUTPUT_FLAG;\
-        case TYPENAME##_P_ENUM :\
-            *flags |= ((__IEC_##TYPENAME##_p *)varp)->flags;\
-            *real_value_p = ((__IEC_##TYPENAME##_p *)varp)->value;\
-            forced_value_p = &((__IEC_##TYPENAME##_p *)varp)->fvalue;\
-            break;
-
-void* UnpackVar(dbgvardsc_t *dsc, void **real_value_p, char *flags)
-{
-    void *varp = dsc->ptr;
-    void *forced_value_p = NULL;
-    *flags = 0;
-    /* find data to copy*/
-    switch(dsc->type){
-        __ANY(__Unpack_case_t)
-        __ANY(__Unpack_case_p)
-    default:
-        break;
-    }
-    if (*flags & __IEC_FORCE_FLAG)
-        return forced_value_p;
-    return *real_value_p;
-}
+%(var_access_code)s
 
 void Remind(unsigned int offset, unsigned int count, void * p);
 
@@ -116,15 +100,18 @@ extern void InitRetain(void);
 void __init_debug(void)
 {
     /* init local static vars */
+#ifndef TARGET_ONLINE_DEBUG_DISABLE
     buffer_cursor = debug_buffer;
-    retain_offset = 0;
     buffer_state = BUFFER_FREE;
+#endif
+
+    retain_offset = 0;
     InitRetain();
     /* Iterate over all variables to fill debug buffer */
     if(CheckRetainBuffer()){
-    	__for_each_variable_do(RemindIterator);
+        __for_each_variable_do(RemindIterator);
     }else{
-    	char mstr[] = "RETAIN memory invalid - defaults used";
+        char mstr[] = "RETAIN memory invalid - defaults used";
         LogMessage(LOG_WARNING, mstr, sizeof(mstr));
     }
     retain_offset = 0;
@@ -137,8 +124,11 @@ extern unsigned long __tick;
 
 void __cleanup_debug(void)
 {
+#ifndef TARGET_ONLINE_DEBUG_DISABLE
     buffer_cursor = debug_buffer;
     InitiateDebugTransfer();
+#endif    
+
     CleanupRetain();
 }
 
@@ -159,15 +149,15 @@ static inline void BufferIterator(dbgvardsc_t *dsc, int do_debug)
 
     if(flags & ( __IEC_DEBUG_FLAG | __IEC_RETAIN_FLAG)){
         USINT size = __get_type_enum_size(dsc->type);
+
+#ifndef TARGET_ONLINE_DEBUG_DISABLE
         if(flags & __IEC_DEBUG_FLAG){
             /* copy visible variable to buffer */;
             if(do_debug){
                 /* compute next cursor positon.
                    No need to check overflow, as BUFFER_SIZE
                    is computed large enough */
-		if((dsc->type == STRING_ENUM)   ||
-		   (dsc->type == STRING_P_ENUM) ||
-		   (dsc->type == STRING_O_ENUM)){
+                if(__Is_a_string(dsc)){
                     /* optimization for strings */
                     size = ((STRING*)visible_value_p)->len + 1;
                 }
@@ -182,6 +172,8 @@ static inline void BufferIterator(dbgvardsc_t *dsc, int do_debug)
                 memcpy(real_value_p, visible_value_p, size);
             }
         }
+#endif
+
         if(flags & __IEC_RETAIN_FLAG){
             /* compute next cursor positon*/
             unsigned int next_retain_offset = retain_offset + size;
@@ -201,6 +193,31 @@ void RetainIterator(dbgvardsc_t *dsc){
     BufferIterator(dsc, 0);
 }
 
+
+unsigned int retain_size = 0;
+
+/* GetRetainSizeIterator */
+void GetRetainSizeIterator(dbgvardsc_t *dsc)
+{
+    void *real_value_p = NULL;
+    char flags = 0;
+    UnpackVar(dsc, &real_value_p, &flags);
+
+    if(flags & __IEC_RETAIN_FLAG){
+        USINT size = __get_type_enum_size(dsc->type);
+        /* Calc retain buffer size */
+        retain_size += size;
+    }
+}
+
+/* Return size of all retain variables */
+unsigned int GetRetainSize(void)
+{
+    __for_each_variable_do(GetRetainSizeIterator);
+    return retain_size;
+}
+
+
 extern void PLC_GetTime(IEC_TIME*);
 extern int TryEnterDebugSection(void);
 extern long AtomicCompareExchange(long*, long, long);
@@ -213,6 +230,8 @@ void __publish_debug(void)
 {
     retain_offset = 0;
     InValidateRetainBuffer();
+    
+#ifndef TARGET_ONLINE_DEBUG_DISABLE 
     /* Check there is no running debugger re-configuration */
     if(TryEnterDebugSection()){
         /* Lock buffer */
@@ -238,13 +257,16 @@ void __publish_debug(void)
             __for_each_variable_do(RetainIterator);
         }
         LeaveDebugSection();
-    }else{
+    }else
+#endif
+    {
         /* when not debugging, do only retain */
         __for_each_variable_do(RetainIterator);
     }
     ValidateRetainBuffer();
 }
 
+#ifndef TARGET_ONLINE_DEBUG_DISABLE
 #define __RegisterDebugVariable_case_t(TYPENAME) \
         case TYPENAME##_ENUM :\
             ((__IEC_##TYPENAME##_t *)varp)->flags |= flags;\
@@ -264,7 +286,7 @@ void __publish_debug(void)
              *(((__IEC_##TYPENAME##_p *)varp)->value) = *((TYPENAME *)force);\
             }\
             break;
-void RegisterDebugVariable(int idx, void* force)
+void RegisterDebugVariable(unsigned int idx, void* force)
 {
     if(idx  < sizeof(dbgvardsc)/sizeof(dbgvardsc_t)){
         unsigned char flags = force ?
@@ -327,4 +349,6 @@ int GetDebugData(unsigned long *tick, unsigned long *size, void **buffer){
     }
     return wait_error;
 }
+#endif
+#endif
 

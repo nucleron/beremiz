@@ -22,11 +22,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from controls import ProjectPropertiesPanel, VariablePanel
-from EditorPanel import EditorPanel
-from ConfTreeNodeEditor import ConfTreeNodeEditor
+from editors.ConfTreeNodeEditor import ConfTreeNodeEditor
+from plcopen.types_enums import ComputeConfigurationName
 
 
 class ProjectNodeEditor(ConfTreeNodeEditor):
@@ -51,7 +53,7 @@ class ProjectNodeEditor(ConfTreeNodeEditor):
     def __init__(self, parent, controler, window):
         configuration = controler.GetProjectMainConfigurationName()
         if configuration is not None:
-            tagname = controler.ComputeConfigurationName(configuration)
+            tagname = ComputeConfigurationName(configuration)
         else:
             tagname = ""
 

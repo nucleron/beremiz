@@ -22,10 +22,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 from weakref import ref
 
+# Exception type for problems that user has to take action in order to fix
+class UserAddressedException(Exception):
+    pass
 
-class POULibrary:
+
+class POULibrary(object):
     def __init__(self, CTR, LibName, TypeStack):
         from PLCControler import PLCControler
         self.CTR = ref(CTR)
@@ -56,3 +62,15 @@ class POULibrary:
     def Generate_C(self, buildpath, varlist, IECCFLAGS):
         # Pure python or IEC libs doesn't produce C code
         return ((""), [], False), ""
+
+    def FatalError(self, message):
+        """ Raise an exception that will trigger error message intended to 
+            the user, but without backtrace since it is not a software error """
+
+        raise UserAddressedException(message)
+
+def SimplePOULibraryFactory(path):
+    class SimplePOULibrary(POULibrary):
+        def GetLibraryPath(self):
+            return path
+    return SimplePOULibrary

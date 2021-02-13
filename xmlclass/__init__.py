@@ -23,6 +23,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 # Package initialisation
-
-from xmlclass import ClassFactory, GenerateParser, DefaultElementClass, GetAttributeValue, time_model, CreateNode, NodeSetAttr, NodeRenameAttr
-from xsdschema import XSDClassFactory, GenerateParserFromXSD, GenerateParserFromXSDstring
+from __future__ import absolute_import
+from .xmlclass import (ClassFactory,
+                       GenerateParser,
+                       DefaultElementClass,
+                       GetAttributeValue,
+                       time_model,
+                       CreateNode,
+                       NodeSetAttr,
+                       NodeRenameAttr)
+from .xsdschema import XSDClassFactory, GenerateParserFromXSD, GenerateParserFromXSDstring

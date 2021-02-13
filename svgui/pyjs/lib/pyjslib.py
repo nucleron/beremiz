@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pylint: disable=too-many-function-args,undefined-variable,no-absolute-import,assign-to-new-keyword,nonzero-method,next-method-called,next-method-defined
 
 # iteration from Bob Ippolito's Iteration in JavaScript
 
@@ -21,8 +22,6 @@ from __pyjamas__ import JS
 
 
 def import_module(path, parent_module, module_name, dynamic=1, async=False):
-    """
-    """
 
     JS("""
         var cache_file;
@@ -187,8 +186,10 @@ function import_wait(proceed_fn, parent_mod, dynamic) {
 """)
 
 
+# pylint: disable=old-style-class
 class Object:
-    pass
+    def __init__(self):
+        pass
 
 
 object = Object
@@ -219,8 +220,8 @@ class Modload:
 
 
 def get_module(module_name):
-    ev = "__mod = %s;" % module_name
-    JS("pyjs_eval(ev);")
+    _ev = "__mod = %s;" % module_name
+    JS("pyjs_eval(_ev);")
     return __mod
 
 
@@ -233,7 +234,7 @@ def preload_app_modules(path, app_modnames, app_imported_fn, dynamic,
 
 # as comment on line 20 says
 # import sys should be below
-import sys  # noqa
+import sys  # noqa # pylint: disable=wrong-import-order,unused-import,wrong-import-position
 
 
 class BaseException:
@@ -284,7 +285,7 @@ class AttributeError(StandardError):
         return "AttributeError: %s of %s" % (self.args[1], self.args[0])
 
 
-JS("""
+JS(r"""
 pyjslib.StopIteration = function () { };
 pyjslib.StopIteration.prototype = new Error();
 pyjslib.StopIteration.name = 'StopIteration';
@@ -598,7 +599,6 @@ class List:
 
     def sort(self, compareFunc=None, keyFunc=None, reverse=False):
         if not compareFunc:
-            global cmp
             compareFunc = cmp
         if keyFunc and reverse:
             def thisSort1(a, b):
@@ -749,7 +749,6 @@ class Tuple:
 
     def sort(self, compareFunc=None, keyFunc=None, reverse=False):
         if not compareFunc:
-            global cmp
             compareFunc = cmp
         if keyFunc and reverse:
             def thisSort1(a, b):
@@ -987,7 +986,7 @@ def str(text):
 
 
 def ord(x):
-    if(isString(x) and len(x) is 1):
+    if isString(x) and len(x) is 1:
         JS("""
             return x.charCodeAt(0);
         """)
@@ -1170,7 +1169,7 @@ def _isinstance(object_, classinfo):
     """)
 
 
-def getattr(obj, name, default_):
+def getattr(obj, name, default_=None):
     JS("""
     if ((!pyjslib.isObject(obj))||(pyjslib.isUndefined(obj[name]))){
         if (pyjslib.isUndefined(default_)){
@@ -1410,8 +1409,8 @@ def type(clsname, bases=None, methods=None):
     JS(" var mths = {}; ")
     if methods:
         for k in methods.keys():
-            mth = methods[k]
-            JS(" mths[k] = mth; ")
+            _mth = methods[k]
+            JS(" mths[k] = _mth; ")
 
     JS(" var bss = null; ")
     if bases:

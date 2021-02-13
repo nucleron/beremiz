@@ -23,10 +23,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from graphics.SFC_Objects import SFC_Step
-from BlockPreviewDialog import BlockPreviewDialog
+from dialogs.BlockPreviewDialog import BlockPreviewDialog
 
 # -------------------------------------------------------------------------------
 #                         Set SFC Step Parameters Dialog
@@ -92,7 +94,7 @@ class SFCStepDialog(BlockPreviewDialog):
 
         # Set default name for step
         self.StepName.ChangeValue(controller.GenerateNewName(
-               tagname, None, "Step%d", 0))
+            tagname, None, "Step%d", 0))
 
         self.Fit()
 
@@ -172,7 +174,7 @@ class SFCStepDialog(BlockPreviewDialog):
         self.RefreshPreview()
         event.Skip()
 
-    def RefreshPreview(self):
+    def DrawPreview(self):
         """
         Refresh preview panel of graphic element
         Override BlockPreviewDialog function
@@ -190,4 +192,4 @@ class SFCStepDialog(BlockPreviewDialog):
                 getattr(self.Element, "Remove" + name.capitalize())()
 
         # Call BlockPreviewDialog function
-        BlockPreviewDialog.RefreshPreview(self)
+        BlockPreviewDialog.DrawPreview(self)

@@ -22,17 +22,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import os
 import shutil
 
 import wx
 import wx.lib.buttons
 
-from EditorPanel import EditorPanel
+from editors.EditorPanel import EditorPanel
 from util.BitmapLibrary import GetBitmap
 from controls import FolderTree
-
-FILTER = _("All files (*.*)|*.*|CSV files (*.csv)|*.csv")
 
 
 class FileManagementPanel(EditorPanel):
@@ -48,6 +48,7 @@ class FileManagementPanel(EditorPanel):
         managed_dir_label = wx.StaticText(self.Editor, label=_(self.TagName) + ":")
         left_sizer.AddWindow(managed_dir_label, border=5, flag=wx.GROW | wx.BOTTOM)
 
+        FILTER = _("All files (*.*)|*.*|CSV files (*.csv)|*.csv")
         self.ManagedDir = FolderTree(self.Editor, self.Folder, FILTER)
         left_sizer.AddWindow(self.ManagedDir, 1, flag=wx.GROW)
 
@@ -148,7 +149,7 @@ class FileManagementPanel(EditorPanel):
     def OnDeleteButton(self, event):
         filepath = self.ManagedDir.GetPath()
         if os.path.isfile(filepath):
-            folder, filename = os.path.split(filepath)
+            _folder, filename = os.path.split(filepath)
 
             dialog = wx.MessageDialog(self,
                                       _("Do you really want to delete the file '%s'?") % filename,
@@ -171,9 +172,9 @@ class FileManagementPanel(EditorPanel):
 
     def CopyFile(self, src, dst):
         if os.path.isfile(src):
-            src_folder, src_filename = os.path.split(src)
+            _src_folder, src_filename = os.path.split(src)
             if os.path.isfile(dst):
-                dst_folder, dst_filename = os.path.split(dst)
+                dst_folder, _dst_filename = os.path.split(dst)
             else:
                 dst_folder = dst
 

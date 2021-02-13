@@ -34,6 +34,8 @@ Beremiz Targets
 - The target folder's name must match to name define in the XSD for TargetType
 """
 
+
+from __future__ import absolute_import
 from os import listdir, path
 import util.paths as paths
 
@@ -72,16 +74,17 @@ def GetTargetChoices():
             DictXSD_toolchain["toolchain_"+toolchainname] = open(xsdfilename).read()
 
     # Get all xsd targets
-    for targetname, nfo in targets.iteritems():
+    for target_name, nfo in targets.iteritems():
         xsd_string = open(nfo["xsd"]).read()
-        targetchoices += xsd_string % DictXSD_toolchain
+        targetchoices += xsd_string % dict(DictXSD_toolchain,
+                                           target_name=target_name)
 
     return targetchoices
 
 
 def GetTargetCode(targetname):
     codedesc = targets[targetname]["code"]
-    code = "\n".join([open(fpath).read() for fname, fpath in sorted(codedesc.items())])
+    code = "\n".join([open(fpath).read() for _fname, fpath in sorted(codedesc.items())])
     return code
 
 

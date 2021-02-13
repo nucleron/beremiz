@@ -22,17 +22,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 import wx.lib.buttons
 import wx.grid
+from six.moves import xrange
 
 from graphics.GraphicCommons import REFRESH_HIGHLIGHT_PERIOD, ERROR_HIGHLIGHT
 from controls import CustomGrid, CustomTable, DurationCellEditor
 from dialogs.DurationEditorDialog import IEC_TIME_MODEL
-from EditorPanel import EditorPanel
+from editors.EditorPanel import EditorPanel
 from util.BitmapLibrary import GetBitmap
-from plcopen.structures import LOCATIONDATATYPES, TestIdentifier, IEC_KEYWORDS, DefaultType
 from util.TranslationCatalogs import NoTranslate
+from plcopen.structures import TestIdentifier, IEC_KEYWORDS
 
 
 # -------------------------------------------------------------------------------
@@ -79,9 +82,6 @@ def GetTaskTriggeringOptions():
     return [_("Interrupt"), _("Cyclic")]
 
 
-TASKTRIGGERINGOPTIONS_DICT = dict([(_(option), option) for option in GetTaskTriggeringOptions()])
-
-
 def SingleCellEditor(*x):
     return wx.grid.GridCellChoiceEditor()
 
@@ -96,7 +96,6 @@ def GetInstancesTableColnames():
 
 
 class ResourceTable(CustomTable):
-
     """
     A custom wx.grid.Grid Table using user supplied data
     """
@@ -105,6 +104,8 @@ class ResourceTable(CustomTable):
         CustomTable.__init__(self, parent, data, colnames)
         self.ColAlignements = []
         self.ColSizes = []
+        self.TASKTRIGGERINGOPTIONS_DICT = dict([(_(option), option)
+                                                for option in GetTaskTriggeringOptions()])
 
     def GetColAlignements(self):
         return self.ColAlignements
@@ -130,7 +131,7 @@ class ResourceTable(CustomTable):
         if col < len(self.colnames):
             colname = self.GetColLabelValue(col, False)
             if colname == "Triggering":
-                value = TASKTRIGGERINGOPTIONS_DICT[value]
+                value = self.TASKTRIGGERINGOPTIONS_DICT[value]
             self.data[row][colname] = value
 
     def _updateColAttrs(self, grid):
@@ -211,7 +212,7 @@ class ResourceTable(CustomTable):
         if highlight_type is None:
             self.Highlights = {}
         else:
-            for row, row_highlights in self.Highlights.iteritems():
+            for _row, row_highlights in self.Highlights.iteritems():
                 row_items = row_highlights.items()
                 for col, col_highlights in row_items:
                     if highlight_type in col_highlights:
@@ -301,7 +302,8 @@ class ResourceEditor(EditorPanel):
         self.RefreshHighlightsTimer = wx.Timer(self, -1)
         self.Bind(wx.EVT_TIMER, self.OnRefreshHighlightsTimer, self.RefreshHighlightsTimer)
 
-        self.TasksDefaultValue = {"Name": "", "Triggering": "", "Single": "", "Interval": "", "Priority": 0}
+        self.TasksDefaultValue = {"Name": "task0", "Triggering": "Cyclic",
+                                  "Single": "", "Interval": "T#20ms", "Priority": 0}
         self.TasksTable = ResourceTable(self, [], GetTasksTableColnames())
         self.TasksTable.SetColAlignements([wx.ALIGN_LEFT, wx.ALIGN_LEFT, wx.ALIGN_LEFT, wx.ALIGN_RIGHT, wx.ALIGN_RIGHT])
         self.TasksTable.SetColSizes([200, 100, 100, 150, 100])
@@ -312,7 +314,15 @@ class ResourceEditor(EditorPanel):
                                    "Down": self.DownTaskButton})
 
         def _AddTask(new_row):
-            self.TasksTable.InsertRow(new_row, self.TasksDefaultValue.copy())
+            if new_row > 0:
+                row_content = self.TasksTable.data[new_row-1].copy()
+                old_name = row_content['Name']
+                row_content['Name'] =\
+                    self.Controler.GenerateNewName(self.TagName, old_name, old_name+'%d')
+            else:
+                row_content = self.TasksDefaultValue.copy()
+
+            self.TasksTable.InsertRow(new_row, row_content)
             self.RefreshModel()
             self.RefreshView()
             return new_row
@@ -336,7 +346,7 @@ class ResourceEditor(EditorPanel):
         self.TasksTable.ResetView(self.TasksGrid)
         self.TasksGrid.RefreshButtons()
 
-        self.InstancesDefaultValue = {"Name": "", "Type": "", "Task": ""}
+        self.InstancesDefaultValue = {"Name": "instance0", "Type": "", "Task": ""}
         self.InstancesTable = ResourceTable(self, [], GetInstancesTableColnames())
         self.InstancesTable.SetColAlignements([wx.ALIGN_LEFT, wx.ALIGN_LEFT, wx.ALIGN_LEFT])
         self.InstancesTable.SetColSizes([200, 150, 150])
@@ -347,7 +357,15 @@ class ResourceEditor(EditorPanel):
                                        "Down": self.DownInstanceButton})
 
         def _AddInstance(new_row):
-            self.InstancesTable.InsertRow(new_row, self.InstancesDefaultValue.copy())
+            if new_row > 0:
+                row_content = self.InstancesTable.data[new_row - 1].copy()
+                old_name = row_content['Name']
+                row_content['Name'] =\
+                    self.Controler.GenerateNewName(self.TagName, old_name, old_name+'%d')
+            else:
+                row_content = self.InstancesDefaultValue.copy()
+
+            self.InstancesTable.InsertRow(new_row, row_content)
             self.RefreshModel()
             self.RefreshView()
             return new_row
@@ -481,6 +499,8 @@ class ResourceEditor(EditorPanel):
                     name = self.InstancesTable.GetValueByName(i, "Task").upper()
                     if old_name == name:
                         self.InstancesTable.SetValueByName(i, "Task", new_name)
+        if self.TasksTable.GetColLabelValue(col, False) == "Triggering":
+            self.TasksTable.SetValueByName(row, "Interval", "T#20ms")
         self.RefreshModel()
         colname = self.TasksTable.GetColLabelValue(col, False)
         if colname in ["Triggering", "Name", "Single", "Interval"]:

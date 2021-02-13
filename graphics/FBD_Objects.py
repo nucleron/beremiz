@@ -22,7 +22,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from __future__ import division
 import wx
+from six.moves import xrange
 
 from graphics.GraphicCommons import *
 from plcopen.structures import *
@@ -43,7 +47,7 @@ class FBD_Block(Graphic_Element):
     """
 
     # Create a new block
-    def __init__(self, parent, type, name, id=None, extension=0, inputs=None, connectors={}, executionControl=False, executionOrder=0):
+    def __init__(self, parent, type, name, id=None, extension=0, inputs=None, connectors=None, executionControl=False, executionOrder=0):
         Graphic_Element.__init__(self, parent)
         self.Type = None
         self.Description = None
@@ -128,7 +132,7 @@ class FBD_Block(Graphic_Element):
     def GetTextBoundingBox(self):
         # Calculate the size of the name outside the block
         text_width, text_height = self.NameSize
-        return wx.Rect(self.Pos.x + (self.Size[0] - text_width) / 2,
+        return wx.Rect(self.Pos.x + (self.Size[0] - text_width) // 2,
                        self.Pos.y - (text_height + 2),
                        text_width,
                        text_height)
@@ -158,9 +162,9 @@ class FBD_Block(Graphic_Element):
         # Calculate the size for the connector lines
         lines = max(len(self.Inputs), len(self.Outputs))
         if lines > 0:
-            linesize = max((self.Size[1] - BLOCK_LINE_SIZE) / lines, BLOCK_LINE_SIZE)
+            linesize = max((self.Size[1] - BLOCK_LINE_SIZE) // lines, BLOCK_LINE_SIZE)
             # Update inputs and outputs positions
-            position = BLOCK_LINE_SIZE + linesize / 2
+            position = BLOCK_LINE_SIZE + linesize // 2
             for i in xrange(lines):
                 if scaling is not None:
                     ypos = round_scaling(self.Pos.y + position, scaling[1]) - self.Pos.y
@@ -174,7 +178,7 @@ class FBD_Block(Graphic_Element):
         self.RefreshConnected()
 
     # Refresh the positions of wires connected to inputs and outputs
-    def RefreshConnected(self, exclude=[]):
+    def RefreshConnected(self, exclude=None):
         for input in self.Inputs:
             input.MoveConnected(exclude)
         for output in self.Outputs:
@@ -201,7 +205,7 @@ class FBD_Block(Graphic_Element):
 
     def SetOutputValues(self, values):
         for output in self.Outputs:
-            output.SetValue(values.get(ouput.getName(), None))
+            output.SetValue(values.get(output.getName(), None))
 
     def GetConnectionResultType(self, connector, connectortype):
         if not TestConnectorName(connector.GetName(), self.Type):
@@ -236,7 +240,7 @@ class FBD_Block(Graphic_Element):
         return None
 
     # Changes the block type
-    def SetType(self, type, extension, inputs=None, connectors={}, executionControl=False):
+    def SetType(self, type, extension, inputs=None, connectors=None, executionControl=False):
         if type != self.Type or self.Extension != extension or executionControl != self.ExecutionControl:
             if type != self.Type:
                 self.Type = type
@@ -252,13 +256,14 @@ class FBD_Block(Graphic_Element):
                 outputs = [output for output in blocktype["outputs"]]
                 if blocktype["extensible"]:
                     start = int(inputs[-1][0].replace("IN", ""))
-                    for i in xrange(self.Extension - len(blocktype["inputs"])):
+                    for dummy in xrange(self.Extension - len(blocktype["inputs"])):
                         start += 1
                         inputs.append(("IN%d" % start, inputs[-1][1], inputs[-1][2]))
                 comment = blocktype["comment"]
                 self.Description = _(comment) + blocktype.get("usage", "")
             else:
                 self.Colour = wx.RED
+                connectors = {} if connectors is None else connectors
                 inputs = connectors.get("inputs", [])
                 outputs = connectors.get("outputs", [])
                 self.Description = None
@@ -352,12 +357,12 @@ class FBD_Block(Graphic_Element):
         # Calculate the inputs maximum width
         max_input = 0
         for input in self.Inputs:
-            w, h = input.GetNameSize()
+            w, _h = input.GetNameSize()
             max_input = max(max_input, w)
         # Calculate the outputs maximum width
         max_output = 0
         for output in self.Outputs:
-            w, h = output.GetNameSize()
+            w, _h = output.GetNameSize()
             max_output = max(max_output, w)
         width = max(self.TypeSize[0] + 10, max_input + max_output + 15)
         height = (max(len(self.Inputs), len(self.Outputs)) + 1) * BLOCK_LINE_SIZE
@@ -475,9 +480,9 @@ class FBD_Block(Graphic_Element):
         # Draw a rectangle with the block size
         dc.DrawRectangle(self.Pos.x, self.Pos.y, self.Size[0] + 1, self.Size[1] + 1)
         # Draw block name and block type
-        name_pos = (self.Pos.x + (self.Size[0] - name_size[0]) / 2,
+        name_pos = (self.Pos.x + (self.Size[0] - name_size[0]) // 2,
                     self.Pos.y - (name_size[1] + 2))
-        type_pos = (self.Pos.x + (self.Size[0] - type_size[0]) / 2,
+        type_pos = (self.Pos.x + (self.Size[0] - type_size[0]) // 2,
                     self.Pos.y + 5)
         dc.DrawText(self.Name, name_pos[0], name_pos[1])
         dc.DrawText(self.Type, type_pos[0], type_pos[1])
@@ -588,7 +593,7 @@ class FBD_Variable(Graphic_Element):
             bbx_width = self.Size[0] + 2 * CONNECTOR_SIZE
         else:
             bbx_width = self.Size[0] + CONNECTOR_SIZE
-        bbx_x = min(bbx_x, self.Pos.x + (self.Size[0] - self.NameSize[0]) / 2)
+        bbx_x = min(bbx_x, self.Pos.x + (self.Size[0] - self.NameSize[0]) // 2)
         bbx_width = max(bbx_width, self.NameSize[0])
         bbx_height = self.Size[1]
         if self.ExecutionOrder != 0:
@@ -601,9 +606,9 @@ class FBD_Variable(Graphic_Element):
     def RefreshConnectors(self):
         scaling = self.Parent.GetScaling()
         if scaling is not None:
-            position = round_scaling(self.Pos.y + self.Size[1] / 2, scaling[1]) - self.Pos.y
+            position = round_scaling(self.Pos.y + self.Size[1] // 2, scaling[1]) - self.Pos.y
         else:
-            position = self.Size[1] / 2
+            position = self.Size[1] // 2
         if self.Input:
             self.Input.SetPosition(wx.Point(0, position))
         if self.Output:
@@ -611,7 +616,7 @@ class FBD_Variable(Graphic_Element):
         self.RefreshConnected()
 
     # Refresh the position of wires connected to connector
-    def RefreshConnected(self, exclude=[]):
+    def RefreshConnected(self, exclude=None):
         if self.Input:
             self.Input.MoveConnected(exclude)
         if self.Output:
@@ -774,8 +779,8 @@ class FBD_Variable(Graphic_Element):
             name_size = self.NameSize
             executionorder_size = self.ExecutionOrderSize
 
-        text_pos = (self.Pos.x + (self.Size[0] - name_size[0]) / 2,
-                    self.Pos.y + (self.Size[1] - name_size[1]) / 2)
+        text_pos = (self.Pos.x + (self.Size[0] - name_size[0]) // 2,
+                    self.Pos.y + (self.Size[1] - name_size[1]) // 2)
         # Draw a rectangle with the variable size
         dc.DrawRectangle(self.Pos.x, self.Pos.y, self.Size[0] + 1, self.Size[1] + 1)
         # Draw variable name
@@ -873,9 +878,9 @@ class FBD_Connector(Graphic_Element):
     def RefreshConnectors(self):
         scaling = self.Parent.GetScaling()
         if scaling is not None:
-            position = round_scaling(self.Pos.y + self.Size[1] / 2, scaling[1]) - self.Pos.y
+            position = round_scaling(self.Pos.y + self.Size[1] // 2, scaling[1]) - self.Pos.y
         else:
-            position = self.Size[1] / 2
+            position = self.Size[1] // 2
         if self.Type == CONNECTOR:
             self.Connector.SetPosition(wx.Point(0, position))
         else:
@@ -883,7 +888,7 @@ class FBD_Connector(Graphic_Element):
         self.RefreshConnected()
 
     # Refresh the position of wires connected to connector
-    def RefreshConnected(self, exclude=[]):
+    def RefreshConnected(self, exclude=None):
         if self.Connector:
             self.Connector.MoveConnected(exclude)
 
@@ -1014,18 +1019,18 @@ class FBD_Connector(Graphic_Element):
 
         # Draw a rectangle with the connection size with arrows inside
         dc.DrawRectangle(self.Pos.x, self.Pos.y, self.Size[0] + 1, self.Size[1] + 1)
-        arrowsize = min(self.Size[1] / 2, (self.Size[0] - name_size[0] - 10) / 2)
+        arrowsize = min(self.Size[1] // 2, (self.Size[0] - name_size[0] - 10) // 2)
         dc.DrawLine(self.Pos.x, self.Pos.y, self.Pos.x + arrowsize,
-                    self.Pos.y + self.Size[1] / 2)
-        dc.DrawLine(self.Pos.x + arrowsize, self.Pos.y + self.Size[1] / 2,
+                    self.Pos.y + self.Size[1] // 2)
+        dc.DrawLine(self.Pos.x + arrowsize, self.Pos.y + self.Size[1] // 2,
                     self.Pos.x, self.Pos.y + self.Size[1])
         dc.DrawLine(self.Pos.x + self.Size[0] - arrowsize, self.Pos.y,
-                    self.Pos.x + self.Size[0], self.Pos.y + self.Size[1] / 2)
-        dc.DrawLine(self.Pos.x + self.Size[0], self.Pos.y + self.Size[1] / 2,
+                    self.Pos.x + self.Size[0], self.Pos.y + self.Size[1] // 2)
+        dc.DrawLine(self.Pos.x + self.Size[0], self.Pos.y + self.Size[1] // 2,
                     self.Pos.x + self.Size[0] - arrowsize, self.Pos.y + self.Size[1])
         # Draw connection name
-        text_pos = (self.Pos.x + (self.Size[0] - name_size[0]) / 2,
-                    self.Pos.y + (self.Size[1] - name_size[1]) / 2)
+        text_pos = (self.Pos.x + (self.Size[0] - name_size[0]) // 2,
+                    self.Pos.y + (self.Size[1] - name_size[1]) // 2)
         dc.DrawText(self.Name, text_pos[0], text_pos[1])
         # Draw connector
         if self.Connector:

@@ -22,6 +22,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from dialogs.BrowseLocationsDialog import BrowseLocationsDialog
@@ -34,7 +36,7 @@ class LocationCellControl(wx.PyControl):
     the BrowseLocationsDialog.
     '''
     def __init__(self, parent):
-        wx.Control.__init__(self, parent)
+        wx.PyControl.__init__(self, parent)
 
         main_sizer = wx.FlexGridSizer(cols=2, hgap=0, rows=1, vgap=0)
         main_sizer.AddGrowableCol(0)
@@ -58,6 +60,7 @@ class LocationCellControl(wx.PyControl):
         self.Controller = None
         self.VarType = None
         self.Default = False
+        self.VariableName = None
 
     def __del__(self):
         self.Controller = None
@@ -73,10 +76,15 @@ class LocationCellControl(wx.PyControl):
 
     def SetValue(self, value):
         self.Default = value
+        self.VariableName = None
+        self.VarType = None
         self.Location.SetValue(value)
 
     def GetValue(self):
         return self.Location.GetValue()
+
+    def GetName(self):
+        return self.VariableName
 
     def OnSize(self, event):
         self.Layout()
@@ -116,7 +124,12 @@ class LocationCellControl(wx.PyControl):
                     location = "%M" + location
 
             self.Location.SetValue(location)
+            self.VariableName = infos["var_name"]
             self.VarType = infos["IEC_type"]
+
+            # when user selected something, end editing immediately
+            # so that changes over multiple colums appear
+            wx.CallAfter(self.Parent.Parent.CloseEditControl)
 
         self.Location.SetFocus()
 
@@ -169,8 +182,22 @@ class LocationCellEditor(wx.grid.PyGridCellEditor):
         loc = self.CellControl.GetValue()
         changed = loc != old_loc
         if changed:
+            name = self.CellControl.GetName()
+            if name is not None:
+                message = self.Table.Parent.CheckVariableName(name, row)
+                if message is not None:
+                    wx.CallAfter(self.Table.Parent.ShowErrorMessage, message)
+                    return None
+                old_name = self.Table.GetValueByName(row, 'Name')
+                self.Table.SetValueByName(row, 'Name', name)
+                self.Table.Parent.OnVariableNameChange(old_name, name)
             self.Table.SetValueByName(row, 'Location', loc)
-            self.Table.SetValueByName(row, 'Type', self.CellControl.GetVarType())
+            var_type = self.CellControl.GetVarType()
+            if var_type is not None:
+                self.Table.SetValueByName(row, 'Type', var_type)
+        else:
+            wx.CallAfter(self.Table.Parent.ShowErrorMessage,
+                         _("Selected location is identical to previous one"))
         self.CellControl.Disable()
         return changed
 

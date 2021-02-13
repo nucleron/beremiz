@@ -23,7 +23,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+from __future__ import absolute_import
 import wx
+from wx.lib.scrolledpanel import ScrolledPanel
+
+from xmlclass.xmlclass import URI_model
 
 # -------------------------------------------------------------------------------
 #                                 Helpers
@@ -64,7 +68,7 @@ class ProjectPropertiesPanel(wx.Notebook):
             sizer.AddWindow(tc, border=10,
                             flag=wx.GROW | border | wx.RIGHT)
 
-    def __init__(self, parent, controller=None, window=None, enable_required=True):
+    def __init__(self, parent, controller=None, window=None, enable_required=True, scrolling=True):
         wx.Notebook.__init__(self, parent)
 
         self.Controller = controller
@@ -73,7 +77,10 @@ class ProjectPropertiesPanel(wx.Notebook):
 
         # Project Panel elements
 
-        self.ProjectPanel = wx.Panel(self, style=wx.TAB_TRAVERSAL)
+        self.ProjectPanel = ScrolledPanel(self, style=wx.TAB_TRAVERSAL)
+        self.ProjectPanel.SetAutoLayout(1)
+        if scrolling:
+            self.ProjectPanel.SetupScrolling()
         projectpanel_sizer = wx.FlexGridSizer(cols=2, hgap=5, rows=5, vgap=15)
         projectpanel_sizer.AddGrowableCol(1)
         self.ProjectPanel.SetSizer(projectpanel_sizer)
@@ -89,7 +96,10 @@ class ProjectPropertiesPanel(wx.Notebook):
 
         # Author Panel elements
 
-        self.AuthorPanel = wx.Panel(self, style=wx.TAB_TRAVERSAL)
+        self.AuthorPanel = ScrolledPanel(self, style=wx.TAB_TRAVERSAL)
+        self.AuthorPanel.SetAutoLayout(1)
+        if scrolling:
+            self.AuthorPanel.SetupScrolling()
         authorpanel_sizer = wx.FlexGridSizer(cols=2, hgap=5, rows=4, vgap=15)
         authorpanel_sizer.AddGrowableCol(1)
         self.AuthorPanel.SetSizer(authorpanel_sizer)
@@ -104,7 +114,10 @@ class ProjectPropertiesPanel(wx.Notebook):
 
         # Graphics Panel elements
 
-        self.GraphicsPanel = wx.Panel(self, style=wx.TAB_TRAVERSAL)
+        self.GraphicsPanel = ScrolledPanel(self, style=wx.TAB_TRAVERSAL)
+        self.GraphicsPanel.SetAutoLayout(1)
+        if scrolling:
+            self.GraphicsPanel.SetupScrolling()
         graphicpanel_sizer = wx.FlexGridSizer(cols=1, hgap=5, rows=4, vgap=5)
         graphicpanel_sizer.AddGrowableCol(0)
         graphicpanel_sizer.AddGrowableRow(3)
@@ -180,9 +193,12 @@ class ProjectPropertiesPanel(wx.Notebook):
 
         # Miscellaneous Panel elements
 
-        self.MiscellaneousPanel = wx.Panel(
-            id=-1, parent=self, name='MiscellaneousPanel', pos=wx.Point(0, 0),
-            size=wx.Size(0, 0), style=wx.TAB_TRAVERSAL)
+        self.MiscellaneousPanel = ScrolledPanel(parent=self,
+                                                name='MiscellaneousPanel',
+                                                style=wx.TAB_TRAVERSAL)
+        self.MiscellaneousPanel.SetAutoLayout(1)
+        if scrolling:
+            self.MiscellaneousPanel.SetupScrolling()
         miscellaneouspanel_sizer = wx.FlexGridSizer(cols=2, hgap=5, rows=2, vgap=15)
         miscellaneouspanel_sizer.AddGrowableCol(1)
         miscellaneouspanel_sizer.AddGrowableRow(1)
@@ -282,8 +298,16 @@ class ProjectPropertiesPanel(wx.Notebook):
             if self.Controller is not None and self.Values is not None:
                 old_value = self.Values.get(name)
                 new_value = textctrl.GetValue()
-                if name not in REQUIRED_PARAMS and new_value == "":
+                if name in REQUIRED_PARAMS and new_value == "":
                     new_value = None
+                if name == 'companyURL':
+                    if not URI_model.match(new_value):
+                        new_value = None
+                        dialog = wx.MessageDialog(self, _('Invalid URL!\n'
+                                                          'Please enter correct URL address.'),
+                                                  _("Error"), wx.OK | wx.ICON_ERROR)
+                        dialog.ShowModal()
+                        dialog.Destroy()
                 if old_value != new_value:
                     self.Controller.SetProjectProperties(properties={name: new_value})
                     self.ParentWindow._Refresh(TITLE, FILEMENU, EDITMENU,

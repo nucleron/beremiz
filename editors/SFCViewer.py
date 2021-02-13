@@ -22,11 +22,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from types import *
+
+from __future__ import absolute_import
+from __future__ import division
 
 import wx
 
-from Viewer import *
+from editors.Viewer import *
 from graphics.SFC_Objects import *
 from graphics.GraphicCommons import SELECTION_DIVERGENCE, \
     SELECTION_CONVERGENCE, SIMULTANEOUS_DIVERGENCE, SIMULTANEOUS_CONVERGENCE, EAST, NORTH, WEST, SOUTH
@@ -282,12 +284,18 @@ class SFC_Viewer(Viewer):
                 self.SelectedElement.OnLeftUp(event, self.GetLogicalDC(), self.Scaling)
                 self.SelectedElement.Refresh()
             wx.CallAfter(self.SetCurrentCursor, 0)
-        elif self.Mode == MODE_WIRE and self.SelectedElement:
-            self.SelectedElement.ResetPoints()
-            self.SelectedElement.OnMotion(event, self.GetLogicalDC(), self.Scaling)
-            self.SelectedElement.GeneratePoints()
-            self.SelectedElement.RefreshModel()
-            self.SelectedElement.SetSelected(True)
+        #
+        # FIXME:
+        # This code was forgotten by commit
+        # 9c74d00ce93e from plcopeneditor_history repository
+        # 'Last bugs on block and wire moving, resizing with cursor fixed'
+        #
+        # elif self.Mode == MODE_WIRE and self.SelectedElement:
+        #     self.SelectedElement.ResetPoints()
+        #     self.SelectedElement.OnMotion(event, self.GetLogicalDC(), self.Scaling)
+        #     self.SelectedElement.GeneratePoints()
+        #     self.SelectedElement.RefreshModel()
+        #     self.SelectedElement.SetSelected(True)
         event.Skip()
 
     def OnViewerRightUp(self, event):
@@ -326,11 +334,17 @@ class SFC_Viewer(Viewer):
                 if not self.IsWire(self.SelectedElement) and not isinstance(self.SelectedElement, Graphic_Group):
                     self.SelectedElement.OnMotion(event, self.GetLogicalDC(), self.Scaling)
                     self.SelectedElement.Refresh()
-            elif self.Mode == MODE_WIRE and self.SelectedElement:
-                self.SelectedElement.ResetPoints()
-                self.SelectedElement.OnMotion(event, self.GetLogicalDC(), self.Scaling)
-                self.SelectedElement.GeneratePoints()
-                self.SelectedElement.Refresh()
+            #
+            # FIXME:
+            # This code was forgotten by commit
+            # 9c74d00ce93e from plcopeneditor_history repository
+            # 'Last bugs on block and wire moving, resizing with cursor fixed'
+            #
+            # elif self.Mode == MODE_WIRE and self.SelectedElement:
+            #     self.SelectedElement.ResetPoints()
+            #     self.SelectedElement.OnMotion(event, self.GetLogicalDC(), self.Scaling)
+            #     self.SelectedElement.GeneratePoints()
+            #     self.SelectedElement.Refresh()
             self.UpdateScrollPos(event)
         event.Skip()
 
@@ -346,7 +360,7 @@ class SFC_Viewer(Viewer):
            (isinstance(startblock, SFC_Objects) or isinstance(endblock, SFC_Objects)):
             # Full "SFC_StandardRules" table would be symmetrical and
             # to avoid duplicate records and minimize the table only upper part is defined.
-            if (direction == SOUTH or direction == EAST):
+            if direction == SOUTH or direction == EAST:
                 startblock, endblock = endblock, startblock
             start = self.GetBlockName(startblock)
             end = self.GetBlockName(endblock)
@@ -520,7 +534,7 @@ class SFC_Viewer(Viewer):
                     pos = connectors["action"].GetPosition(False)
                     id = self.GetNewId()
                     actionblock = SFC_ActionBlock(self, [], id)
-                    actionblock.SetPosition(pos.x + SFC_WIRE_MIN_SIZE, pos.y - SFC_STEP_DEFAULT_SIZE[1] / 2)
+                    actionblock.SetPosition(pos.x + SFC_WIRE_MIN_SIZE, pos.y - SFC_STEP_DEFAULT_SIZE[1] // 2)
                     actionblock_connector = actionblock.GetConnector()
                     wire = self.ConnectConnectors(actionblock_connector, connectors["action"])
                     wire.SetPoints([wx.Point(pos.x + SFC_WIRE_MIN_SIZE, pos.y), wx.Point(pos.x, pos.y)])
@@ -534,8 +548,8 @@ class SFC_Viewer(Viewer):
                 dialog.Destroy()
 
     def AddDivergence(self):
-        if self.SelectedElement in self.Wires or isinstance(self.SelectedElement, Graphic_Group) or isinstance(self.SelectedElement, SFC_Step):
-            dialog = SFCDivergenceDialog(self.ParentWindow)
+        if self.SelectedElement in self.Wires or isinstance(self.SelectedElement, (Graphic_Group, SFC_Step)):
+            dialog = SFCDivergenceDialog(self.ParentWindow, self.Controler, self.TagName)
             dialog.SetPreviewFont(self.GetFont())
             if dialog.ShowModal() == wx.ID_OK:
                 value = dialog.GetValues()
@@ -579,7 +593,7 @@ class SFC_Viewer(Viewer):
                     self.AddBlock(divergence)
                     self.Controler.AddEditedElementDivergence(self.TagName, id, value["type"])
                     self.RefreshDivergenceModel(divergence)
-                    for index, connector in enumerate(divergence_connectors["outputs"]):
+                    for _index, connector in enumerate(divergence_connectors["outputs"]):
                         if next:
                             wire = self.ConnectConnectors(next, connector)
                             pos = connector.GetPosition(False)
@@ -593,7 +607,7 @@ class SFC_Viewer(Viewer):
                         else:
                             transition = self.CreateTransition(connector)
                             transition_connectors = transition.GetConnectors()
-                            step = self.CreateStep("Step", transition_connectors["output"])
+                            _step = self.CreateStep("Step", transition_connectors["output"])
                 elif value["type"] == SIMULTANEOUS_DIVERGENCE:
                     if self.SelectedElement in self.Wires and isinstance(self.SelectedElement.EndConnected.GetParentBlock(), SFC_Transition):
                         self.SelectedElement.SetSelectedSegment(None)
@@ -637,7 +651,7 @@ class SFC_Viewer(Viewer):
                     self.AddBlock(divergence)
                     self.Controler.AddEditedElementDivergence(self.TagName, id, value["type"])
                     self.RefreshDivergenceModel(divergence)
-                    for index, connector in enumerate(divergence_connectors["outputs"]):
+                    for _index, connector in enumerate(divergence_connectors["outputs"]):
                         if next:
                             wire = self.ConnectConnectors(next, connector)
                             pos = connector.GetPosition(False)
@@ -649,7 +663,7 @@ class SFC_Viewer(Viewer):
                             next_block.RefreshModel()
                             next = None
                         else:
-                            step = self.CreateStep("Step", connector)
+                            _step = self.CreateStep("Step", connector)
                 elif isinstance(self.SelectedElement, Graphic_Group) and len(self.SelectedElement.GetElements()) > 1:
                     next = None
                     for element in self.SelectedElement.GetElements():
@@ -746,7 +760,7 @@ class SFC_Viewer(Viewer):
                         previous = transition_connectors["output"]
                     else:
                         previous = divergence_connectors["outputs"][-1]
-                    step = self.CreateStep("Step", previous)
+                    _step = self.CreateStep("Step", previous)
             self.RefreshBuffer()
             self.RefreshScrollBars()
             self.Refresh(False)

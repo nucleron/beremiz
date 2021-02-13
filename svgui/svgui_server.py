@@ -22,10 +22,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import os
 
-from nevow import rend, appserver, inevow, tags, loaders, athena
-import simplejson as json
+from __future__ import absolute_import
+import os
+from builtins import str as text
+
+from nevow import tags, loaders
+import simplejson as json  # pylint: disable=import-error
+import runtime.NevowServer as NS
 
 svgfile = '%(svgfile)s'
 
@@ -40,7 +44,7 @@ def getNewId():
     return currentId
 
 
-class SvguiWidget:
+class SvguiWidget(object):
 
     def __init__(self, classname, id, **kwargs):
         self.classname = classname
@@ -113,19 +117,19 @@ class SVGUI_HMI(website.PLCHMI):
     jsClass = u"LiveSVGPage.LiveSVGWidget"
 
     docFactory = loaders.stan(tags.div(render=tags.directive('liveElement'))[
-                                         tags.xml(loaders.xmlfile(os.path.join(WorkingDir, svgfile))),
-                                         ])
+        tags.xml(loaders.xmlfile(os.path.join(NS.WorkingDir, svgfile))),
+    ])
 
     def HMIinitialisation(self):
         gadgets = []
         for gadget in svguiWidgets.values():
-            gadgets.append(unicode(json.dumps(gadget, default=get_object_init_state, indent=2), 'ascii'))
+            gadgets.append(text(json.dumps(gadget, default=get_object_init_state, indent=2), 'ascii'))
         d = self.callRemote('init', gadgets)
         d.addCallback(self.HMIinitialised)
 
     def sendData(self, data):
         if self.initialised:
-            return self.callRemote('receiveData', unicode(json.dumps(data, default=get_object_current_state, indent=2), 'ascii'))
+            return self.callRemote('receiveData', text(json.dumps(data, default=get_object_current_state, indent=2), 'ascii'))
         return None
 
     def setattr(self, id, attrname, value):
@@ -136,7 +140,7 @@ def createSVGUIControl(*args, **kwargs):
     id = getNewId()
     gad = SvguiWidget(args[0], id, **kwargs)
     svguiWidgets[id] = gad
-    gadget = [unicode(json.dumps(gad, default=get_object_init_state, indent=2), 'ascii')]
+    gadget = [text(json.dumps(gad, default=get_object_init_state, indent=2), 'ascii')]
     interface = website.getHMI()
     if isinstance(interface, SVGUI_HMI) and interface.initialised:
         interface.callRemote('init', gadget)

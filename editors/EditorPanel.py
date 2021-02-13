@@ -22,6 +22,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from controls import VariablePanel
@@ -38,8 +40,6 @@ class EditorPanel(wx.SplitterWindow):
         self.MenuItems = []
 
     def _init_ctrls(self, parent):
-        wx.SplitterWindow.__init__(self, parent,
-                                   style=wx.SUNKEN_BORDER | wx.SP_3D)
         self.SetMinimumPaneSize(1)
 
         self._init_MenuItems()
@@ -60,6 +60,9 @@ class EditorPanel(wx.SplitterWindow):
             self.Initialize(self.Editor)
 
     def __init__(self, parent, tagname, window, controler, debug=False):
+        wx.SplitterWindow.__init__(self, parent,
+                                   style=wx.SUNKEN_BORDER | wx.SP_3D)
+
         self.ParentWindow = window
         self.Controler = controler
         self.TagName = tagname

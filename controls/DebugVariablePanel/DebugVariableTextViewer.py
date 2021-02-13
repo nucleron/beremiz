@@ -22,13 +22,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from types import TupleType
+
+from __future__ import absolute_import
+from __future__ import division
 
 import wx
 
-from DebugVariableItem import DebugVariableItem
-from DebugVariableViewer import DebugVariableViewer
-from GraphButton import GraphButton
+from controls.DebugVariablePanel.DebugVariableViewer import DebugVariableViewer
+from controls.DebugVariablePanel.GraphButton import GraphButton
 
 # -------------------------------------------------------------------------------
 #                     Debug Variable Text Viewer Drop Target
@@ -86,7 +87,7 @@ class DebugVariableTextDropTarget(wx.TextDropTarget):
         # Check that data is valid regarding DebugVariablePanel
         try:
             values = eval(data)
-            if not isinstance(values, TupleType):
+            if not isinstance(values, tuple):
                 raise ValueError
         except Exception:
             message = _("Invalid value \"%s\" for debug variable") % data
@@ -101,9 +102,9 @@ class DebugVariableTextDropTarget(wx.TextDropTarget):
 
             # Get Before which Viewer the variable has to be moved or added
             # according to the position of mouse in Viewer.
-            width, height = self.ParentControl.GetSize()
+            _width, height = self.ParentControl.GetSize()
             target_idx = self.ParentControl.GetIndex()
-            if y > height / 2:
+            if y > height // 2:
                 target_idx += 1
 
             # Drag'n Drop is an internal is an internal move inside Debug
@@ -149,7 +150,7 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
     Class that implements a Viewer that display variable values as a text
     """
 
-    def __init__(self, parent, window, items=[]):
+    def __init__(self, parent, window, items=None):
         """
         Constructor
         @param parent: Parent wx.Window of DebugVariableText
@@ -184,13 +185,18 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
             self.Buttons.append(GraphButton(0, 0, bitmap, callback))
 
     def RefreshViewer(self):
+        """Triggers EVT_PAINT event to refresh UI"""
+        self.Refresh()
+
+    def DrawViewer(self):
         """
-        Method that refresh the content displayed by Viewer
+        Redraw content displayed by Viewer
         """
+
         # Create buffered DC for drawing in panel
         width, height = self.GetSize()
         bitmap = wx.EmptyBitmap(width, height)
-        dc = wx.BufferedDC(wx.ClientDC(self), bitmap)
+        dc = wx.BufferedDC(wx.PaintDC(self), bitmap)
         dc.Clear()
 
         # Get Graphics Context for DC, for anti-aliased and transparent
@@ -204,11 +210,11 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
 
         # Get item variable path masked according Debug Variable Panel mask
         item_path = item.GetVariable(
-                self.ParentWindow.GetVariableNameMask())
+            self.ParentWindow.GetVariableNameMask())
 
         # Draw item variable path at Viewer left side
         w, h = gc.GetTextExtent(item_path)
-        gc.DrawText(item_path, 20, (height - h) / 2)
+        gc.DrawText(item_path, 20, (height - h) // 2)
 
         # Update 'Release' button state and text color according to item forced
         # flag value
@@ -221,7 +227,7 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
         # Draw item current value at right side of Viewer
         item_value = item.GetValue()
         w, h = gc.GetTextExtent(item_value)
-        gc.DrawText(item_value, width - 40 - w, (height - h) / 2)
+        gc.DrawText(item_value, width - 40 - w, (height - h) // 2)
 
         # Draw other Viewer common elements
         self.DrawCommonElements(gc)
@@ -237,9 +243,9 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
         item = self.ItemsDict.values()[0]
 
         # Calculate item path bounding box
-        width, height = self.GetSize()
+        _width, height = self.GetSize()
         item_path = item.GetVariable(
-                self.ParentWindow.GetVariableNameMask())
+            self.ParentWindow.GetVariableNameMask())
         w, h = self.GetTextExtent(item_path)
 
         # Test if mouse has been pressed in this bounding box. In that case
@@ -281,5 +287,5 @@ class DebugVariableTextViewer(DebugVariableViewer, wx.Panel):
         Function called when redrawing Viewer content is needed
         @param event: wx.PaintEvent
         """
-        self.RefreshViewer()
+        self.DrawViewer()
         event.Skip()

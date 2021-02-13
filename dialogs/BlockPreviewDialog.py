@@ -23,6 +23,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+from __future__ import division
 import wx
 
 from plcopen.structures import TestIdentifier, IEC_KEYWORDS
@@ -173,13 +176,11 @@ class BlockPreviewDialog(wx.Dialog):
         # Get list of variables defined in POU
         self.VariableList = {
             var.Name: (var.Class, var.Type)
-            for var in self.Controller.GetEditedElementInterfaceVars(
-                                                        self.TagName)
+            for var in self.Controller.GetEditedElementInterfaceVars(self.TagName)
             if var.Edit}
 
         # Add POU name to variable list if POU is a function
-        returntype = self.Controller.GetEditedElementInterfaceReturnType(
-                                                            self.TagName)
+        returntype = self.Controller.GetEditedElementInterfaceReturnType(self.TagName)
         if returntype is not None:
             self.VariableList[
                 self.Controller.GetEditedElementName(self.TagName)] = \
@@ -250,12 +251,16 @@ class BlockPreviewDialog(wx.Dialog):
         self.EndModal(wx.ID_OK)
 
     def RefreshPreview(self):
+        """Triggers EVT_PAINT event to refresh UI"""
+        self.Refresh()
+
+    def DrawPreview(self):
         """
         Refresh preview panel of graphic element
         May be overridden by inherited classes
         """
         # Init preview panel paint device context
-        dc = wx.ClientDC(self.Preview)
+        dc = wx.PaintDC(self.Preview)
         dc.SetFont(self.Preview.GetFont())
         dc.Clear()
 
@@ -282,13 +287,13 @@ class BlockPreviewDialog(wx.Dialog):
         k = 1.1 if (bbox.width * 1.1 > client_size.width or
                     bbox.height * 1.1 > client_size.height) \
             else 1.0
-        scale = (max(float(bbox.width) / client_size.width,
-                     float(bbox.height) / client_size.height) * k)
+        scale = (max(bbox.width / client_size.width,
+                     bbox.height / client_size.height) * k)
         dc.SetUserScale(1.0 / scale, 1.0 / scale)
 
         # Center graphic element in preview panel
-        x = int(client_size.width * scale - bbox.width) / 2 + posx - bbox.x
-        y = int(client_size.height * scale - bbox.height) / 2 + posy - bbox.y
+        x = int(client_size.width * scale - bbox.width) // 2 + posx - bbox.x
+        y = int(client_size.height * scale - bbox.height) // 2 + posy - bbox.y
         self.Element.SetPosition(x, y)
 
         # Draw graphic element
@@ -299,5 +304,5 @@ class BlockPreviewDialog(wx.Dialog):
         Called when Preview panel need to be redraw
         @param event: wx.PaintEvent
         """
-        self.RefreshPreview()
+        self.DrawPreview()
         event.Skip()

@@ -26,8 +26,13 @@
 Misc definitions
 """
 
+
+from __future__ import absolute_import
 import os
-import sys
+from functools import reduce
+
+from util.BitmapLibrary import AddBitmapFolder
+from util.TranslationCatalogs import AddCatalog
 
 
 def CheckPathPerm(path):
@@ -43,27 +48,26 @@ def CheckPathPerm(path):
     return True
 
 
-def GetClassImporter(classpath):
-    if type(classpath) == str:
-        def fac():
-            mod = __import__(classpath.rsplit('.', 1)[0])
-            return reduce(getattr, classpath.split('.')[1:], mod)
-        return fac
+def GetClassImporter(param):
+    """
+    is used to resolve library class names in features.py
+    if param is a string, returns a callable that return the class pointed by param
+    if a class is given, then returns a callable that returns the given class.
+    """
+
+    if isinstance(param, str):
+        def factory():
+            # on-demand import, only when using class
+            mod = __import__(param.rsplit('.', 1)[0])
+            return reduce(getattr, param.split('.')[1:], mod)
+        return factory
     else:
-        return classpath
+        return lambda: param
 
 
 def InstallLocalRessources(CWD):
-    from BitmapLibrary import AddBitmapFolder
-    from TranslationCatalogs import AddCatalog
-    import wx
-
     # Beremiz bitmaps
     AddBitmapFolder(os.path.join(CWD, "images"))
 
     # Internationalization
     AddCatalog(os.path.join(CWD, "locale"))
-    import gettext
-    import __builtin__
-
-    __builtin__.__dict__['_'] = wx.GetTranslation

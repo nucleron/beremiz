@@ -30,9 +30,9 @@
 This module contains classes extended from wx.Dialog used by the GUI.
 """
 
+
+from __future__ import absolute_import
 import os
-import sys
-import time
 import wx
 from wx.lib.agw.hyperlink import HyperLinkCtrl
 

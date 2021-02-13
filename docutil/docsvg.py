@@ -22,18 +22,35 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import wx
+
+from __future__ import absolute_import
 import os
 import subprocess
+import wx
 
 
 def get_inkscape_path():
     """ Return the Inkscape path """
-    import _winreg
-    svgexepath = _winreg.QueryValue(_winreg.HKEY_LOCAL_MACHINE,
-                                    'Software\\Classes\\svgfile\\shell\\Inkscape\\command')
-    svgexepath = svgexepath.replace('"%1"', '')
-    return svgexepath.replace('"', '')
+    if wx.Platform == '__WXMSW__':
+        from six.moves import winreg
+        try:
+                svgexepath = winreg.QueryValue(winreg.HKEY_LOCAL_MACHINE,
+                                               'Software\\Classes\\svgfile\\shell\\Inkscape\\command')
+        except OSError:
+            try:
+                svgexepath = winreg.QueryValue(winreg.HKEY_LOCAL_MACHINE,
+                                               'Software\\Classes\\inkscape.svg\\shell\\open\\command')
+            except Exception:
+                return None
+
+        svgexepath = svgexepath.replace('"%1"', '').strip()
+        return svgexepath.replace('"', '')
+    else:
+        # TODO: search for inkscape in $PATH
+        svgexepath = os.path.join("/usr/bin", "inkscape")
+        if os.path.exists(svgexepath):
+            return svgexepath
+        return None
 
 
 def open_win_svg(svgexepath, svgfile):
@@ -41,7 +58,7 @@ def open_win_svg(svgexepath, svgfile):
     popenargs = [svgexepath]
     if svgfile is not None:
         popenargs.append(svgfile)
-    subprocess.Popen(popenargs).pid
+    subprocess.Popen(popenargs)
 
 
 def open_lin_svg(svgexepath, svgfile):
@@ -59,8 +76,8 @@ def open_svg(svgfile):
             wx.MessageBox("Inkscape is not found or installed !")
             return None
     else:
-        svgexepath = os.path.join("/usr/bin", "inkscape")
-        if(os.path.isfile(svgexepath)):
+        svgexepath=get_inkscape_path()
+        if os.path.isfile(svgexepath):
             open_lin_svg(svgexepath, svgfile)
         else:
             wx.MessageBox("Inkscape is not found or installed !")

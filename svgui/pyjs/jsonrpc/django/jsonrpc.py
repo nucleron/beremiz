@@ -1,17 +1,15 @@
 # jsonrpc.py
 #   original code: http://trac.pyworks.org/pyjamas/wiki/DjangoWithPyJamas
 #   also from: http://www.pimentech.fr/technologies/outils
-from datetime import date
-import datetime
-import sys
 
-from django.utils import simplejson
-from django.http import HttpResponse
-from django import forms
+from __future__ import absolute_import
+import datetime
+from builtins import str as text
+
 from django.core.serializers import serialize
 
 
-from pyjs.jsonrpc import JSONRPCServiceBase
+from svgui.pyjs.jsonrpc.jsonrpc import JSONRPCServiceBase
 # JSONRPCService and jsonremote are used in combination to drastically
 # simplify the provision of JSONRPC services.  use as follows:
 #
@@ -77,26 +75,26 @@ def builderrors(form):
         if error not in d:
             d[error] = []
         for errorval in form.errors[error]:
-            d[error].append(unicode(errorval))
+            d[error].append(text(errorval))
     return d
 
 
 # contains the list of arguments in each field
 field_names = {
- 'CharField': ['max_length', 'min_length'],
- 'IntegerField': ['max_value', 'min_value'],
- 'FloatField': ['max_value', 'min_value'],
- 'DecimalField': ['max_value', 'min_value', 'max_digits', 'decimal_places'],
- 'DateField': ['input_formats'],
- 'DateTimeField': ['input_formats'],
- 'TimeField': ['input_formats'],
- 'RegexField': ['max_length', 'min_length'],  # sadly we can't get the expr
- 'EmailField': ['max_length', 'min_length'],
- 'URLField': ['max_length', 'min_length', 'verify_exists', 'user_agent'],
- 'ChoiceField': ['choices'],
- 'FilePathField': ['path', 'match', 'recursive', 'choices'],
- 'IPAddressField': ['max_length', 'min_length'],
- }
+    'CharField': ['max_length', 'min_length'],
+    'IntegerField': ['max_value', 'min_value'],
+    'FloatField': ['max_value', 'min_value'],
+    'DecimalField': ['max_value', 'min_value', 'max_digits', 'decimal_places'],
+    'DateField': ['input_formats'],
+    'DateTimeField': ['input_formats'],
+    'TimeField': ['input_formats'],
+    'RegexField': ['max_length', 'min_length'],  # sadly we can't get the expr
+    'EmailField': ['max_length', 'min_length'],
+    'URLField': ['max_length', 'min_length', 'verify_exists', 'user_agent'],
+    'ChoiceField': ['choices'],
+    'FilePathField': ['path', 'match', 'recursive', 'choices'],
+    'IPAddressField': ['max_length', 'min_length'],
+}
 
 
 def describe_field_errors(field):
@@ -104,7 +102,7 @@ def describe_field_errors(field):
     field_type = field.__class__.__name__
     msgs = {}
     for n, m in field.error_messages.items():
-        msgs[n] = unicode(m)
+        msgs[n] = text(m)
     res['error_messages'] = msgs
     if field_type in ['ComboField', 'MultiValueField', 'SplitDateTimeField']:
         res['fields'] = map(describe_field, field.fields)

@@ -23,44 +23,37 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+from __future__ import absolute_import
+from __future__ import division
 import os
 import sys
 import shutil
 import wx
-from gnosis.xml.pickle import *
-from gnosis.xml.pickle.util import setParanoia
+from gnosis.xml.pickle import *  # pylint: disable=import-error
+from gnosis.xml.pickle.util import setParanoia  # pylint: disable=import-error
 
 import util.paths as paths
 from util.TranslationCatalogs import AddCatalog
 from ConfigTreeNode import ConfigTreeNode
 from PLCControler import \
     LOCATION_CONFNODE, \
-    LOCATION_MODULE, \
-    LOCATION_GROUP, \
-    LOCATION_VAR_INPUT, \
-    LOCATION_VAR_OUTPUT, \
     LOCATION_VAR_MEMORY
 
-try:
-    from nodelist import NodeList
-except ImportError:
-    base_folder = paths.AbsParentDir(__file__, 2)
-    CanFestivalPath = os.path.join(base_folder, "CanFestival-3")
-    sys.path.append(os.path.join(CanFestivalPath, "objdictgen"))
+base_folder = paths.AbsParentDir(__file__, 2)  # noqa
+CanFestivalPath = os.path.join(base_folder, "CanFestival-3")  # noqa
+sys.path.append(os.path.join(CanFestivalPath, "objdictgen"))  # noqa
 
-    from nodelist import NodeList
-
-
+# pylint: disable=wrong-import-position
+from nodelist import NodeList
 from nodemanager import NodeManager
-import config_utils
 import gen_cfile
 import eds_utils
-import canfestival_config as local_canfestival_config
-
+import canfestival_config as local_canfestival_config  # pylint: disable=import-error
 from commondialogs import CreateNodeDialog
 from subindextable import IECTypeConversion, SizeConversion
-from SlaveEditor import SlaveEditor, MasterViewer
-from NetworkEditor import NetworkEditor
+from canfestival import config_utils
+from canfestival.SlaveEditor import SlaveEditor, MasterViewer
+from canfestival.NetworkEditor import NetworkEditor
 
 
 AddCatalog(os.path.join(CanFestivalPath, "objdictgen", "locale"))
@@ -127,7 +120,7 @@ class _SlaveCTN(NodeManager):
         # TODO change netname when name change
         NodeManager.__init__(self)
         odfilepath = self.GetSlaveODPath()
-        if(os.path.isfile(odfilepath)):
+        if os.path.isfile(odfilepath):
             self.OpenFileInCurrent(odfilepath)
         else:
             self.FilePath = ""
@@ -135,7 +128,7 @@ class _SlaveCTN(NodeManager):
             dialog.Type.Enable(False)
             dialog.GenSYNC.Enable(False)
             if dialog.ShowModal() == wx.ID_OK:
-                name, id, nodetype, description = dialog.GetValues()
+                name, id, _nodetype, description = dialog.GetValues()
                 profile, filepath = dialog.GetProfile()
                 NMT = dialog.GetNMTManagement()
                 options = dialog.GetOptions()
@@ -212,7 +205,6 @@ class _SlaveCTN(NodeManager):
         return result
 
     def GetVariableLocationTree(self):
-        current_location = self.GetCurrentLocation()
         return GetSlaveLocationTree(self.CurrentNode,
                                     self.GetCurrentLocation(),
                                     self.BaseParams.getName())
@@ -336,7 +328,7 @@ class _NodeListCTN(NodeList):
             nodeid = self.CanFestivalNode.getNodeId()
             if value != nodeid:
                 slaves = self.GetSlaveIDs()
-                dir = (value - nodeid) / abs(value - nodeid)
+                dir = (value - nodeid) // abs(value - nodeid)
                 while value in slaves and value >= 0:
                     value += dir
                 if value < 0:
@@ -460,7 +452,7 @@ class _NodeListCTN(NodeList):
         # Create a new copy of the model with DCF loaded with PDO mappings for desired location
         try:
             master, pointers = config_utils.GenerateConciseDCF(locations, current_location, self, self.CanFestivalNode.getSync_TPDOs(), "OD_%s" % prefix)
-        except config_utils.PDOmappingException, e:
+        except config_utils.PDOmappingException as e:
             raise Exception(e.message)
         # Do generate C file.
         res = gen_cfile.GenerateFile(Gen_OD_path, master, pointers)
@@ -468,7 +460,9 @@ class _NodeListCTN(NodeList):
             raise Exception(res)
 
         file = open(os.path.join(buildpath, "MasterGenerated.od"), "w")
-        dump(master, file)
+        # linter disabled here, undefined variable happens
+        # here because gnosis isn't impored while linting
+        dump(master, file)  # pylint: disable=undefined-variable
         file.close()
 
         return [(Gen_OD_path, local_canfestival_config.getCFLAGS(CanFestivalPath))], "", False
@@ -483,7 +477,7 @@ class _NodeListCTN(NodeList):
         return self.Manager.GetCurrentBufferState()
 
 
-class RootClass:
+class RootClass(object):
     XSD = """<?xml version="1.0" encoding="ISO-8859-1" ?>
     <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
       <xsd:element name="CanFestivalInstance">
@@ -524,23 +518,24 @@ class RootClass:
         else:
             can_driver_name = ""
 
-        format_dict = {"locstr": "_".join(map(str, self.GetCurrentLocation())),
-                       "candriver": can_driver_name,
-                       "nodes_includes": "",
-                       "board_decls": "",
-                       "nodes_init": "",
-                       "nodes_open": "",
-                       "nodes_stop": "",
-                       "nodes_close": "",
-                       "nodes_send_sync": "",
-                       "nodes_proceed_sync": "",
-                       "slavebootups": "",
-                       "slavebootup_register": "",
-                       "post_sync": "",
-                       "post_sync_register": "",
-                       "pre_op": "",
-                       "pre_op_register": "",
-                       }
+        format_dict = {
+            "locstr": "_".join(map(str, self.GetCurrentLocation())),
+            "candriver": can_driver_name,
+            "nodes_includes": "",
+            "board_decls": "",
+            "nodes_init": "",
+            "nodes_open": "",
+            "nodes_stop": "",
+            "nodes_close": "",
+            "nodes_send_sync": "",
+            "nodes_proceed_sync": "",
+            "slavebootups": "",
+            "slavebootup_register": "",
+            "post_sync": "",
+            "post_sync_register": "",
+            "pre_op": "",
+            "pre_op_register": "",
+        }
         for child in self.IECSortedChildren():
             childlocstr = "_".join(map(str, child.GetCurrentLocation()))
             nodename = "OD_%s" % childlocstr
@@ -552,8 +547,8 @@ class RootClass:
                 child_data = getattr(child, "CanFestivalNode")
                 # Apply sync setting
                 format_dict["nodes_init"] += 'NODE_MASTER_INIT(%s, %s)\n    ' % (
-                       nodename,
-                       child_data.getNodeId())
+                    nodename,
+                    child_data.getNodeId())
                 if child_data.getSync_TPDOs():
                     format_dict["nodes_send_sync"] += 'NODE_SEND_SYNC(%s)\n    ' % (nodename)
                     format_dict["nodes_proceed_sync"] += 'NODE_PROCEED_SYNC(%s)\n    ' % (nodename)
@@ -596,16 +591,16 @@ class RootClass:
                     format_dict["post_sync_register"] += (
                         "%s_Data.post_sync = %s_post_sync;\n" % (nodename, nodename))
                 format_dict["nodes_init"] += 'NODE_SLAVE_INIT(%s, %s)\n    ' % (
-                       nodename,
-                       child_data.getNodeId())
+                    nodename,
+                    child_data.getNodeId())
 
             # Include generated OD headers
             format_dict["nodes_includes"] += '#include "%s.h"\n' % (nodename)
             # Declare CAN channels according user filled config
             format_dict["board_decls"] += 'BOARD_DECL(%s, "%s", "%s")\n' % (
-                   nodename,
-                   child.GetCanDevice(),
-                   child_data.getCAN_Baudrate())
+                nodename,
+                child.GetCanDevice(),
+                child_data.getCAN_Baudrate())
             format_dict["nodes_open"] += 'NODE_OPEN(%s)\n    ' % (nodename)
             format_dict["nodes_close"] += 'NODE_CLOSE(%s)\n    ' % (nodename)
             format_dict["nodes_stop"] += 'NODE_STOP(%s)\n    ' % (nodename)
@@ -622,6 +617,6 @@ class RootClass:
         if can_driver is not None:
             can_driver_path = os.path.join(CanFestivalPath, "drivers", can_driver, can_driver_name)
             if os.path.exists(can_driver_path):
-                res += ((can_driver_name, file(can_driver_path, "rb")),)
+                res += ((can_driver_name, open(can_driver_path, "rb")),)
 
         return res

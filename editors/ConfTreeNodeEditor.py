@@ -23,17 +23,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import os
-import types
+
+from __future__ import absolute_import
+from __future__ import division
 
 import wx
 
-from EditorPanel import EditorPanel
+from editors.EditorPanel import EditorPanel
 
 from IDEFrame import TITLE, FILEMENU, PROJECTTREE, PAGETITLES
 
 from controls import TextCtrlAutoComplete
-from dialogs import BrowseValuesLibraryDialog
+from dialogs import BrowseValuesLibraryDialog, UriEditor
 from util.BitmapLibrary import GetBitmap
 
 if wx.Platform == '__WXMSW__':
@@ -47,7 +48,7 @@ if wx.Platform == '__WXMSW__':
 else:
     faces = {
         'times': 'Times',
-        'mono':  'Courier',
+        'mono':  'FreeMono',
         'helv':  'Helvetica',
         'other': 'new century schoolbook',
         'size':  18,
@@ -99,11 +100,11 @@ class GenBitmapTextButton(wx.lib.buttons.GenBitmapTextButton):
         if not self.up:
             dw = dy = self.labelDelta
 
-        pos_x = (width-bw)/2+dw      # adjust for bitmap and text to centre
-        pos_y = (height-bh-th)/2+dy
+        pos_x = (width - bw) // 2 + dw      # adjust for bitmap and text to centre
+        pos_y = (height - bh - th) // 2 + dy
         if bmp is not None:
             dc.DrawBitmap(bmp, pos_x, pos_y, hasMask)  # draw bitmap if available
-            pos_x = (width-tw)/2+dw      # adjust for bitmap and text to centre
+            pos_x = (width-tw)//2+dw      # adjust for bitmap and text to centre
             pos_y += bh + 2
 
         dc.DrawText(label, pos_x, pos_y)      # draw the text
@@ -304,8 +305,8 @@ class ConfTreeNodeEditor(EditorPanel):
         self.Thaw()
 
     def GenerateMethodButtonSizer(self):
-        normal_bt_font = wx.Font(faces["size"] / 3,    wx.DEFAULT, wx.NORMAL, wx.NORMAL, faceName=faces["helv"])
-        mouseover_bt_font = wx.Font(faces["size"] / 3, wx.DEFAULT, wx.NORMAL, wx.NORMAL, faceName=faces["helv"], underline=True)
+        normal_bt_font = wx.Font(faces["size"] // 3,    wx.DEFAULT, wx.NORMAL, wx.NORMAL, faceName=faces["helv"])
+        mouseover_bt_font = wx.Font(faces["size"] // 3, wx.DEFAULT, wx.NORMAL, wx.NORMAL, faceName=faces["helv"], underline=True)
 
         msizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -336,6 +337,27 @@ class ConfTreeNodeEditor(EditorPanel):
                     button.Disable()
                 msizer.AddWindow(button, flag=wx.ALIGN_CENTER)
         return msizer
+
+    def UriOptions(self, event):
+        CTR = self.ParentWindow.CTR
+        CTR_BeremizRoot = CTR.BeremizRoot
+        CTR_AppFrame = CTR.AppFrame
+
+        # Get connector uri
+        uri = CTR_BeremizRoot.getURI_location().strip()
+        dialog = UriEditor(CTR_AppFrame, CTR, uri)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            CTR_BeremizRoot.setURI_location(dialog.GetURI())
+            if CTR._View is not None:
+                CTR._View.RefreshView()
+            if CTR_AppFrame is not None:
+                CTR_AppFrame.RefreshTitle()
+                CTR_AppFrame.RefreshFileMenu()
+                CTR_AppFrame.RefreshEditMenu()
+                CTR_AppFrame.RefreshPageTitles()
+
+        dialog.Destroy()
 
     def GenerateSizerElements(self, sizer, elements, path, clean=True):
         if clean:
@@ -380,8 +402,8 @@ class ConfTreeNodeEditor(EditorPanel):
                 boxsizer.AddWindow(statictext, border=5,
                                    flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT)
 
-                if isinstance(element_infos["type"], types.ListType):
-                    if isinstance(element_infos["value"], types.TupleType):
+                if isinstance(element_infos["type"], list):
+                    if isinstance(element_infos["value"], tuple):
                         browse_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
                         boxsizer.AddSizer(browse_boxsizer)
 
@@ -407,8 +429,8 @@ class ConfTreeNodeEditor(EditorPanel):
 
                         if element_infos["use"] == "optional":
                             combobox.Append("")
-                        if len(element_infos["type"]) > 0 and isinstance(element_infos["type"][0], types.TupleType):
-                            for choice, xsdclass in element_infos["type"]:
+                        if len(element_infos["type"]) > 0 and isinstance(element_infos["type"][0], tuple):
+                            for choice, _xsdclass in element_infos["type"]:
                                 combobox.Append(choice)
                             name = element_infos["name"]
                             value = element_infos["value"]
@@ -430,7 +452,7 @@ class ConfTreeNodeEditor(EditorPanel):
                             combobox.SetStringSelection(element_infos["value"])
                         combobox.Bind(wx.EVT_COMBOBOX, callback, combobox)
 
-                elif isinstance(element_infos["type"], types.DictType):
+                elif isinstance(element_infos["type"], dict):
                     scmin = -(2**31)
                     scmax = 2**31-1
                     if "min" in element_infos["type"]:
@@ -483,11 +505,26 @@ class ConfTreeNodeEditor(EditorPanel):
                                                         element_path=element_path,
                                                         size=wx.Size(300, -1))
 
-                        boxsizer.AddWindow(textctrl)
+                        if element_infos["name"] == "URI_location":
+                            uriSizer = wx.FlexGridSizer(cols=2, hgap=0, rows=1, vgap=0)
+                            uriSizer.AddGrowableCol(0)
+                            uriSizer.AddGrowableRow(0)
+
+                            self.EditButton = wx.Button(self.ParamsEditor, label='...', size=wx.Size(30, -1))
+                            self.Bind(wx.EVT_BUTTON, self.UriOptions, self.EditButton)
+
+                            uriSizer.AddWindow(textctrl, flag=wx.GROW)
+                            uriSizer.AddWindow(self.EditButton, flag=wx.GROW)
+
+                            boxsizer.AddWindow(uriSizer)
+                        else:
+                            boxsizer.AddWindow(textctrl)
+
                         if element_infos["value"] is not None:
                             textctrl.ChangeValue(str(element_infos["value"]))
                         callback = self.GetTextCtrlCallBackFunction(textctrl, element_path)
                         textctrl.Bind(wx.EVT_TEXT_ENTER, callback)
+                        textctrl.Bind(wx.EVT_TEXT, callback)
                         textctrl.Bind(wx.EVT_KILL_FOCUS, callback)
             first = False
         sizer.Layout()
@@ -496,7 +533,7 @@ class ConfTreeNodeEditor(EditorPanel):
     def GetItemChannelChangedFunction(self, dir):
         def OnConfNodeTreeItemChannelChanged(event):
             confnode_IECChannel = self.Controler.BaseParams.getIEC_Channel()
-            res = self.SetConfNodeParamsAttribute("BaseParams.IEC_Channel", confnode_IECChannel + dir)
+            self.SetConfNodeParamsAttribute("BaseParams.IEC_Channel", confnode_IECChannel + dir)
             wx.CallAfter(self.RefreshIECChannelControlsState)
             wx.CallAfter(self.ParentWindow._Refresh, TITLE, FILEMENU, PROJECTTREE)
             event.Skip()
@@ -534,7 +571,7 @@ class ConfTreeNodeEditor(EditorPanel):
 
     def GetChoiceContentCallBackFunction(self, choicectrl, staticboxsizer, path):
         def OnChoiceContentChanged(event):
-            res = self.SetConfNodeParamsAttribute(path, choicectrl.GetStringSelection())
+            self.SetConfNodeParamsAttribute(path, choicectrl.GetStringSelection())
             wx.CallAfter(self.RefreshConfNodeParamsSizer)
             event.Skip()
         return OnChoiceContentChanged
@@ -578,11 +615,12 @@ class ConfTreeNodeEditor(EditorPanel):
         xstart, ystart = self.ParamsEditor.GetViewStart()
         window_size = self.ParamsEditor.GetClientSize()
         maxx, maxy = self.ParamsEditorSizer.GetMinSize()
-        posx = max(0, min(xstart, (maxx - window_size[0]) / SCROLLBAR_UNIT))
-        posy = max(0, min(ystart, (maxy - window_size[1]) / SCROLLBAR_UNIT))
+        posx = max(0, min(xstart, (maxx - window_size[0]) // SCROLLBAR_UNIT))
+        posy = max(0, min(ystart, (maxy - window_size[1]) // SCROLLBAR_UNIT))
         self.ParamsEditor.Scroll(posx, posy)
         self.ParamsEditor.SetScrollbars(SCROLLBAR_UNIT, SCROLLBAR_UNIT,
-                                        maxx / SCROLLBAR_UNIT, maxy / SCROLLBAR_UNIT,
+                                        maxx // SCROLLBAR_UNIT,
+                                        maxy // SCROLLBAR_UNIT,
                                         posx, posy)
 
     def OnParamsEditorResize(self, event):

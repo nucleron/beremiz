@@ -23,6 +23,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 
@@ -38,12 +40,14 @@ class BrowseValuesLibraryDialog(wx.Dialog):
                            title=_('Browse %s values library') % name)
 
         self.staticText1 = wx.StaticText(
-              label=_('Choose a value for %s:') % name, name='staticText1', parent=self,
-              pos=wx.Point(0, 0), size=wx.DefaultSize, style=0)
+            label=_('Choose a value for %s:') % name,
+            name='staticText1', parent=self,
+            pos=wx.Point(0, 0), size=wx.DefaultSize, style=0)
 
         self.ValuesLibrary = wx.TreeCtrl(
-              name='ValuesLibrary', parent=self, pos=wx.Point(0, 0),
-              size=wx.Size(400, 200), style=wx.TR_HAS_BUTTONS | wx.TR_SINGLE | wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_LINES_AT_ROOT)
+            name='ValuesLibrary', parent=self, pos=wx.Point(0, 0),
+            size=wx.Size(400, 200),
+            style=wx.TR_HAS_BUTTONS | wx.TR_SINGLE | wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_LINES_AT_ROOT)
 
         self.ButtonSizer = self.CreateButtonSizer(wx.OK | wx.CANCEL | wx.CENTRE)
 

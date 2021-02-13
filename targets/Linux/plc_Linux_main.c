@@ -82,6 +82,10 @@ static pthread_mutex_t debug_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int PLC_shutdown = 0;
 
+int ForceSaveRetainReq(void) {
+    return PLC_shutdown;
+}
+
 void PLC_thread_proc(void *arg)
 {
     while (!PLC_shutdown) {
@@ -117,7 +121,7 @@ int startPLC(int argc,char **argv)
     pthread_mutex_lock(&debug_wait_mutex);
     pthread_mutex_lock(&python_wait_mutex);
 
-    timer_create (CLOCK_REALTIME, &sigev, &PLC_timer);
+    timer_create (CLOCK_MONOTONIC, &sigev, &PLC_timer);
     if(  __init(argc,argv) == 0 ){
         PLC_SetTimer(common_ticktime__,common_ticktime__);
 
@@ -230,33 +234,4 @@ void UnLockPython(void)
 void LockPython(void)
 {
     pthread_mutex_lock(&python_mutex);
-}
-
-void InitRetain(void)
-{
-}
-
-void CleanupRetain(void)
-{
-}
-
-int CheckRetainBuffer(void)
-{
-	return 1;
-}
-
-void ValidateRetainBuffer(void)
-{
-}
-
-void InValidateRetainBuffer(void)
-{
-}
-
-void Retain(unsigned int offset, unsigned int count, void *p)
-{
-}
-
-void Remind(unsigned int offset, unsigned int count, void *p)
-{
 }

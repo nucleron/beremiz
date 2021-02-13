@@ -23,6 +23,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from controls.ProjectPropertiesPanel import ProjectPropertiesPanel
@@ -39,9 +41,7 @@ class ProjectDialog(wx.Dialog):
         main_sizer.AddGrowableRow(0)
 
         self.ProjectProperties = ProjectPropertiesPanel(
-            self,
-            enable_required=enable_required)
-
+            self, enable_required=enable_required, scrolling=False)
         main_sizer.AddWindow(self.ProjectProperties, flag=wx.GROW)
 
         self.ButtonSizer = self.CreateButtonSizer(wx.OK | wx.CANCEL | wx.CENTRE)

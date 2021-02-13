@@ -78,10 +78,15 @@ You can get the gettext tools from the following sites:
 # Module Import
 # -------------
 #
+
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
-import wx
 import re
+from builtins import str as text
+import wx
+
 
 # -----------------------------------------------------------------------------
 # Global variables
@@ -94,13 +99,33 @@ __version__ = "$Revision: 1.5 $"
 # -----------------------------------------------------------------------------
 
 
+def getSupportedLanguageDict(appname):
+    """
+    Returns dictionary with languages already supported
+    by given application
+
+    param: appname:
+        name of application
+    """
+    languageDict = {}
+    ext = '.po'
+    files = [x for x in os.listdir('.')
+             if x.startswith(appname) and x.endswith(ext)]
+
+    langs = [x.split(appname + '_')[1].split(ext)[0] for x in files]
+    for lang in langs:
+        languageDict[lang] = lang
+
+    return languageDict
+
+
 def getlanguageDict():
     languageDict = {}
-
+    getSupportedLanguageDict('Beremiz')
     if wx.VERSION >= (3, 0, 0):
-        app = wx.App()
+        _app = wx.App()
     else:
-        app = wx.PySimpleApp()
+        _app = wx.PySimpleApp()
 
     for lang in [x for x in dir(wx) if x.startswith("LANGUAGE")]:
         i = wx.Locale(wx.LANGUAGE_DEFAULT).GetLanguageInfo(getattr(wx, lang))
@@ -112,7 +137,7 @@ def getlanguageDict():
 
 def verbosePrint(verbose, str):
     if verbose:
-        print str
+        print(str)
 
 
 def processCustomFiles(filein, fileout, regexp, prefix=''):
@@ -126,7 +151,7 @@ def processCustomFiles(filein, fileout, regexp, prefix=''):
     messages_file.write('\n')
 
     words_found = {}
-    for filepath in appfil_file.xreadlines():
+    for filepath in appfil_file.readlines():
         code_file = open(filepath.strip(), 'r')
         for match in regexp.finditer(code_file.read()):
             word = match.group(1)
@@ -177,7 +202,7 @@ def makePO(applicationDirectoryPath,  applicationDomain=None, verbose=0):
     os.chdir(applicationDirectoryPath)
     filelist = 'app.fil'
     if not os.path.exists(filelist):
-        raise IOError(2, 'No module file: ' % filelist)
+        raise IOError(2, 'No module file: %s' % filelist)
 
     fileout = 'messages.pot'
     # Steps:
@@ -191,10 +216,10 @@ def makePO(applicationDirectoryPath,  applicationDomain=None, verbose=0):
     verbosePrint(verbose, cmd)
     os.system(cmd)
 
-    XSD_STRING_MODEL = re.compile("<xsd\:(?:element|attribute) name=\"([^\"]*)\"[^\>]*\>")
+    XSD_STRING_MODEL = re.compile(r"<xsd\:(?:element|attribute) name=\"([^\"]*)\"[^\>]*\>")
     processCustomFiles(filelist, fileout, XSD_STRING_MODEL, 'Extra XSD strings')
 
-    XML_TC6_STRING_MODEL = re.compile("<documentation>\s*<xhtml\:p><!\[CDATA\[([^\]]*)\]\]></xhtml\:p>\s*</documentation>", re.MULTILINE | re.DOTALL)
+    XML_TC6_STRING_MODEL = re.compile(r"<documentation>\s*<xhtml\:p><!\[CDATA\[([^\]]*)\]\]></xhtml\:p>\s*</documentation>", re.MULTILINE | re.DOTALL)
     processCustomFiles(filelist, fileout, XML_TC6_STRING_MODEL, 'Extra TC6 documentation strings')
 
     # generate messages.po
@@ -202,7 +227,7 @@ def makePO(applicationDirectoryPath,  applicationDomain=None, verbose=0):
     verbosePrint(verbose, cmd)
     os.system(cmd)
 
-    languageDict = getlanguageDict()
+    languageDict = getSupportedLanguageDict(applicationName)
 
     for langCode in languageDict.keys():
         if langCode == 'en':
@@ -227,7 +252,7 @@ def catPO(applicationDirectoryPath, listOf_extraPo, applicationDomain=None, targ
     currentDir = os.getcwd()
     os.chdir(applicationDirectoryPath)
 
-    languageDict = getlanguageDict()
+    languageDict = getSupportedLanguageDict(applicationName)
 
     for langCode in languageDict.keys():
         if langCode == 'en':
@@ -281,7 +306,7 @@ def makeMO(applicationDirectoryPath, targetDir='./locale', applicationDomain=Non
     currentDir = os.getcwd()
     os.chdir(applicationDirectoryPath)
 
-    languageDict = getlanguageDict()
+    languageDict = getSupportedLanguageDict(applicationName)
 
     for langCode in languageDict.keys():
         if (langCode == 'en') and (forceEnglish == 0):
@@ -300,7 +325,7 @@ def makeMO(applicationDirectoryPath, targetDir='./locale', applicationDomain=Non
 
 def printUsage(errorMsg=None):
     """Displays how to use this script from the command line."""
-    print """
+    print("""
     ##################################################################################
     #   mki18n :   Make internationalization files.                                  #
     #              Uses the GNU gettext system to create PO (Portable Object) files  #
@@ -330,9 +355,9 @@ def printUsage(errorMsg=None):
     #   specify the path of the target application.  If you leave it out mki18n      #
     #   will use the current directory as the application main directory.            #
     #                                                                                #
-    ##################################################################################"""
+    ##################################################################################""")
     if errorMsg:
-        print "\n   ERROR: %s" % errorMsg
+        print("\n   ERROR: %s" % errorMsg)
 
 
 def fileBaseOf(filename, withPath=0):
@@ -436,7 +461,8 @@ def unixpath(thePath):
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 if __name__ == "__main__":
-    import getopt     # command line parsing
+    # command line parsing
+    import getopt    # pylint: disable=wrong-import-order,wrong-import-position
     argc = len(sys.argv)
     if argc == 1:
         printUsage('Missing argument: specify at least one of -m or -p (or both).')
@@ -459,21 +485,21 @@ if __name__ == "__main__":
         '--domain':   'domain',
         '--moTarget': 'moTarget',
     }
-
+    exit_code = 1
     try:
         optionList, pargs = getopt.getopt(sys.argv[1:], validOptions, validLongOptions)
-    except getopt.GetoptError, e:
-        printUsage(e[0])
+    except getopt.GetoptError as e:
+        printUsage(e)
         sys.exit(1)
     for (opt, val) in optionList:
-        if (opt == '-h'):
+        if opt == '-h':
             printUsage()
             sys.exit(0)
         option[optionKey[opt]] = 1 if val == '' else val
     if len(pargs) == 0:
         appDirPath = os.getcwd()
         if option['verbose']:
-            print "No project directory given. Using current one:  %s" % appDirPath
+            print("No project directory given. Using current one:  %s" % appDirPath)
     elif len(pargs) == 1:
         appDirPath = pargs[0]
     else:
@@ -483,15 +509,17 @@ if __name__ == "__main__":
         # If no domain specified, use the name of the target directory
         option['domain'] = fileBaseOf(appDirPath)
     if option['verbose']:
-        print "Application domain used is: '%s'" % option['domain']
+        print("Application domain used is: '%s'" % option['domain'])
     if option['po']:
         try:
             makePO(appDirPath, option['domain'], option['verbose'])
-        except IOError, e:
-            printUsage(e[1] + '\n   You must write a file app.fil that contains the list of all files to parse.')
+            exit_code = 0
+        except IOError as e:
+            printUsage(text(e) + '\n   You must write a file app.fil that contains the list of all files to parse.')
     if option['mo']:
         makeMO(appDirPath, option['moTarget'], option['domain'], option['verbose'], option['forceEnglish'])
-    sys.exit(1)
+        exit_code = 0
+    sys.exit(exit_code)
 
 
 # -----------------------------------------------------------------------------

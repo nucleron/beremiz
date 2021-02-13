@@ -22,16 +22,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import os
 import sys
-import time
-import wx
 import subprocess
 import ctypes
 from threading import Timer, Lock, Thread, Semaphore
-if os.name == 'posix':
-    from signal import SIGTERM, SIGKILL
+import signal
 
+_debug = os.path.exists("BEREMIZ_DEBUG")
 
 class outputThread(Thread):
     """
@@ -72,12 +72,13 @@ class outputThread(Thread):
             self.endcallback(self.Proc.pid, err)
 
 
-class ProcessLogger:
+class ProcessLogger(object):
     def __init__(self, logger, Command, finish_callback=None,
                  no_stdout=False, no_stderr=False, no_gui=True,
                  timeout=None, outlimit=None, errlimit=None,
                  endlog=None, keyword=None, kill_it=False, cwd=None,
-                 encoding=None):
+                 encoding=None, output_encoding=None):
+        assert(logger)
         self.logger = logger
         if not isinstance(Command, list):
             self.Command_str = Command
@@ -94,6 +95,7 @@ class ProcessLogger:
             self.Command_str = subprocess.list2cmdline(self.Command)
 
         fsencoding = sys.getfilesystemencoding()
+        self.output_encoding = output_encoding
 
         if encoding is None:
             encoding = fsencoding
@@ -118,17 +120,17 @@ class ProcessLogger:
         self.endlock = Lock()
 
         popenargs = {
-               "cwd":    os.getcwd() if cwd is None else cwd,
-               "stdin":  subprocess.PIPE,
-               "stdout": subprocess.PIPE,
-               "stderr": subprocess.PIPE
+            "cwd":    os.getcwd() if cwd is None else cwd,
+            "stdin":  subprocess.PIPE,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE
         }
 
-        if no_gui and wx.Platform == '__WXMSW__':
+        if no_gui and os.name in ("nt", "ce"):
             self.startupinfo = subprocess.STARTUPINFO()
             self.startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             popenargs["startupinfo"] = self.startupinfo
-        elif wx.Platform == '__WXGTK__':
+        elif os.name == 'posix':
             popenargs["shell"] = False
 
         if timeout:
@@ -140,20 +142,22 @@ class ProcessLogger:
         self.Proc = subprocess.Popen(self.Command, **popenargs)
 
         self.outt = outputThread(
-                      self.Proc,
-                      self.Proc.stdout,
-                      self.output,
-                      self.finish)
+            self.Proc,
+            self.Proc.stdout,
+            self.output,
+            self.finish)
         self.outt.start()
 
         self.errt = outputThread(
-                      self.Proc,
-                      self.Proc.stderr,
-                      self.errors)
+            self.Proc,
+            self.Proc.stderr,
+            self.errors)
         self.errt.start()
         self.startsem.release()
 
     def output(self, v):
+        if v and self.output_encoding:
+            v = v.decode(self.output_encoding)
         self.outdata.append(v)
         self.outlen += 1
         if not self.no_stdout:
@@ -162,6 +166,8 @@ class ProcessLogger:
             self.endlog()
 
     def errors(self, v):
+        if v and self.output_encoding:
+            v = v.decode(self.output_encoding)
         self.errdata.append(v)
         self.errlen += 1
         if not self.no_stderr:
@@ -170,16 +176,18 @@ class ProcessLogger:
             self.endlog()
 
     def log_the_end(self, ecode, pid):
-        self.logger.write(self.Command_str + "\n")
-        self.logger.write_warning(_("exited with status {a1} (pid {a2})\n").format(a1=str(ecode), a2=str(pid)))
+        if self.logger is not None:
+            self.logger.write(self.Command_str + "\n")
+            self.logger.write_warning(_("exited with status {a1} (pid {a2})\n").format(a1=str(ecode), a2=str(pid)))
 
     def finish(self, pid, ecode):
         # avoid running function before start is finished
         self.startsem.acquire()
+        self.startsem.release()
         if self.timeout:
             self.timeout.cancel()
         self.exitcode = ecode
-        if self.exitcode != 0:
+        if _debug or self.exitcode != 0:
             self.log_the_end(ecode, pid)
         if self.finish_callback is not None:
             self.finish_callback(self, ecode, pid)
@@ -193,16 +201,16 @@ class ProcessLogger:
 
         self.outt.killed = True
         self.errt.killed = True
-        if wx.Platform == '__WXMSW__':
+        if os.name in ("nt", "ce"):
             PROCESS_TERMINATE = 1
             handle = ctypes.windll.kernel32.OpenProcess(PROCESS_TERMINATE, False, self.Proc.pid)
             ctypes.windll.kernel32.TerminateProcess(handle, -1)
             ctypes.windll.kernel32.CloseHandle(handle)
         else:
             if gently:
-                sig = SIGTERM
+                sig = signal.SIGTERM
             else:
-                sig = SIGKILL
+                sig = signal.SIGKILL
             try:
                 os.kill(self.Proc.pid, sig)
             except Exception:

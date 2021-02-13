@@ -5,6 +5,7 @@
 # programming IEC 61131-3 automates supporting plcopen standard and CanFestival.
 #
 # Copyright (C) 2007: Edouard TISSERANT and Laurent BESSARD
+# Copyright (C) 2017: Andrey Skvortsov
 #
 # See COPYING file for copyrights details.
 #
@@ -22,18 +23,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import re
-from types import TupleType
+from six.moves import xrange
 
 import wx
 import wx.grid
 import wx.lib.buttons
-
 from plcopen.structures import IEC_KEYWORDS, TestIdentifier, DefaultType
 from graphics.GraphicCommons import REFRESH_HIGHLIGHT_PERIOD
-from controls import CustomEditableListBox, CustomGrid, CustomTable
+from controls import CustomEditableListBox, CustomGrid, CustomTable, CustomIntCtrl
 from dialogs import ArrayTypeDialog
-from EditorPanel import EditorPanel
+from editors.EditorPanel import EditorPanel
 from util.BitmapLibrary import GetBitmap
 from util.TranslationCatalogs import NoTranslate
 
@@ -41,7 +43,7 @@ from util.TranslationCatalogs import NoTranslate
 #                                    Helpers
 # -------------------------------------------------------------------------------
 
-DIMENSION_MODEL = re.compile("([0-9]+)\.\.([0-9]+)$")
+DIMENSION_MODEL = re.compile(r"([0-9]+)\.\.([0-9]+)$")
 
 
 def AppendMenu(parent, help, id, kind, text):
@@ -57,8 +59,6 @@ def GetDatatypeTypes():
     _ = NoTranslate
     return [_("Directly"), _("Subrange"), _("Enumerated"), _("Array"), _("Structure")]
 
-
-DATATYPE_TYPES_DICT = dict([(_(datatype), datatype) for datatype in GetDatatypeTypes()])
 
 # -------------------------------------------------------------------------------
 #                            Structure Elements Table
@@ -82,9 +82,9 @@ class ElementsTable(CustomTable):
             colname = self.GetColLabelValue(col, False)
             value = self.data[row].get(colname, "")
 
-            if colname == "Type" and isinstance(value, TupleType):
+            if colname == "Type" and isinstance(value, tuple):
                 if value[0] == "array":
-                    return "ARRAY [%s] OF %s" % (",".join(map(lambda x: "..".join(x), value[2])), value[1])
+                    return "ARRAY [%s] OF %s" % (",".join(map("..".join, value[2])), value[1])
             return value
 
     def SetValue(self, row, col, value):
@@ -225,9 +225,8 @@ class DataTypeEditor(EditorPanel):
         subrange_panel_sizer.AddWindow(subrange_initialvalue_label, 1, border=5,
                                        flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL)
 
-        self.SubrangeInitialValue = wx.SpinCtrl(self.SubrangePanel,
-                                                style=wx.TAB_TRAVERSAL)
-        self.Bind(wx.EVT_SPINCTRL, self.OnInfosChanged, self.SubrangeInitialValue)
+        self.SubrangeInitialValue = CustomIntCtrl(self.SubrangePanel, style=wx.TAB_TRAVERSAL)
+        self.SubrangeInitialValue.Bind(CustomIntCtrl.EVT_CUSTOM_INT, self.OnInfosChanged)
         subrange_panel_sizer.AddWindow(self.SubrangeInitialValue, 1, border=5,
                                        flag=wx.GROW | wx.ALL)
 
@@ -235,12 +234,12 @@ class DataTypeEditor(EditorPanel):
         subrange_panel_sizer.AddWindow(subrange_minimum_label, 1, border=5,
                                        flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL)
 
-        self.SubrangeMinimum = wx.SpinCtrl(self.SubrangePanel, style=wx.TAB_TRAVERSAL)
-        self.Bind(wx.EVT_SPINCTRL, self.OnSubrangeMinimumChanged, self.SubrangeMinimum)
+        self.SubrangeMinimum = CustomIntCtrl(self.SubrangePanel, style=wx.TAB_TRAVERSAL)
+        self.SubrangeMinimum.Bind(CustomIntCtrl.EVT_CUSTOM_INT, self.OnSubrangeMinimumChanged)
         subrange_panel_sizer.AddWindow(self.SubrangeMinimum, 1, border=5,
                                        flag=wx.GROW | wx.ALL)
 
-        for i in xrange(2):
+        for dummy in xrange(2):
             subrange_panel_sizer.AddWindow(wx.Size(0, 0), 1)
 
         subrange_maximum_label = wx.StaticText(self.SubrangePanel,
@@ -248,8 +247,8 @@ class DataTypeEditor(EditorPanel):
         subrange_panel_sizer.AddWindow(subrange_maximum_label, 1, border=5,
                                        flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL)
 
-        self.SubrangeMaximum = wx.SpinCtrl(self.SubrangePanel, style=wx.TAB_TRAVERSAL)
-        self.Bind(wx.EVT_SPINCTRL, self.OnSubrangeMaximumChanged, self.SubrangeMaximum)
+        self.SubrangeMaximum = CustomIntCtrl(self.SubrangePanel, style=wx.TAB_TRAVERSAL)
+        self.SubrangeMaximum.Bind(CustomIntCtrl.EVT_CUSTOM_INT, self.OnSubrangeMaximumChanged)
 
         subrange_panel_sizer.AddWindow(self.SubrangeMaximum, 1, border=5,
                                        flag=wx.GROW | wx.ALL)
@@ -264,11 +263,11 @@ class DataTypeEditor(EditorPanel):
         enumerated_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.EnumeratedValues = CustomEditableListBox(
-                self.EnumeratedPanel,
-                label=_("Values:"),
-                style=(wx.gizmos.EL_ALLOW_NEW |
-                       wx.gizmos.EL_ALLOW_EDIT |
-                       wx.gizmos.EL_ALLOW_DELETE))
+            self.EnumeratedPanel,
+            label=_("Values:"),
+            style=(wx.gizmos.EL_ALLOW_NEW |
+                   wx.gizmos.EL_ALLOW_EDIT |
+                   wx.gizmos.EL_ALLOW_DELETE))
         setattr(self.EnumeratedValues, "_OnLabelEndEdit", self.OnEnumeratedValueEndEdit)
         for func in ["_OnAddButton", "_OnDelButton", "_OnUpButton", "_OnDownButton"]:
             setattr(self.EnumeratedValues, func, self.OnEnumeratedValuesChanged)
@@ -329,11 +328,11 @@ class DataTypeEditor(EditorPanel):
                                          flag=wx.ALL)
 
         self.ArrayDimensions = CustomEditableListBox(
-                self.ArrayPanel,
-                label=_("Dimensions:"),
-                style=(wx.gizmos.EL_ALLOW_NEW |
-                       wx.gizmos.EL_ALLOW_EDIT |
-                       wx.gizmos.EL_ALLOW_DELETE))
+            self.ArrayPanel,
+            label=_("Dimensions:"),
+            style=(wx.gizmos.EL_ALLOW_NEW |
+                   wx.gizmos.EL_ALLOW_EDIT |
+                   wx.gizmos.EL_ALLOW_DELETE))
         for func in ["_OnLabelEndEdit", "_OnAddButton", "_OnDelButton",
                      "_OnUpButton", "_OnDownButton"]:
             setattr(self.ArrayDimensions, func, self.OnDimensionsChanged)
@@ -399,6 +398,8 @@ class DataTypeEditor(EditorPanel):
                                                "Delete": self.StructureDeleteButton,
                                                "Up": self.StructureUpButton,
                                                "Down": self.StructureDownButton})
+
+        self.DATATYPE_TYPES_DICT = dict([(_(datatype), datatype) for datatype in GetDatatypeTypes()])
 
         def _AddStructureElement(new_row):
             self.StructureElementsTable.InsertRow(new_row, self.StructureElementDefaultValue.copy())
@@ -511,7 +512,7 @@ class DataTypeEditor(EditorPanel):
                 self.EnumeratedInitialValue.SetStringSelection(type_infos["initial"])
             elif type_infos["type"] == "Array":
                 self.ArrayBaseType.SetStringSelection(type_infos["base_type"])
-                self.ArrayDimensions.SetStrings(map(lambda x: "..".join(x), type_infos["dimensions"]))
+                self.ArrayDimensions.SetStrings(map("..".join, type_infos["dimensions"]))
                 self.ArrayInitialValue.SetValue(type_infos["initial"])
             elif type_infos["type"] == "Structure":
                 self.StructureElementsTable.SetData(type_infos["elements"])
@@ -685,7 +686,7 @@ class DataTypeEditor(EditorPanel):
         dialog.Destroy()
 
     def RefreshDisplayedInfos(self):
-        selected = DATATYPE_TYPES_DICT[self.DerivationType.GetStringSelection()]
+        selected = self.DATATYPE_TYPES_DICT[self.DerivationType.GetStringSelection()]
         if selected != self.CurrentPanel:
             if self.CurrentPanel == "Directly":
                 self.DirectlyPanel.Hide()
@@ -723,16 +724,16 @@ class DataTypeEditor(EditorPanel):
         range = self.Controler.GetDataTypeRange(self.SubrangeBaseType.GetStringSelection())
         if range is not None:
             min_value, max_value = range
-            self.SubrangeMinimum.SetRange(min_value, max_value)
+            self.SubrangeMinimum.SetBounds(min_value, max_value)
             self.SubrangeMinimum.SetValue(min(max(min_value, self.SubrangeMinimum.GetValue()), max_value))
-            self.SubrangeMaximum.SetRange(min_value, max_value)
+            self.SubrangeMaximum.SetBounds(min_value, max_value)
             self.SubrangeMaximum.SetValue(min(max(min_value, self.SubrangeMaximum.GetValue()), max_value))
 
     def RefreshSubrangeInitialValueRange(self):
-        self.SubrangeInitialValue.SetRange(self.SubrangeMinimum.GetValue(), self.SubrangeMaximum.GetValue())
+        self.SubrangeInitialValue.SetBounds(self.SubrangeMinimum.GetValue(), self.SubrangeMaximum.GetValue())
 
     def RefreshTypeInfos(self):
-        selected = DATATYPE_TYPES_DICT[self.DerivationType.GetStringSelection()]
+        selected = self.DATATYPE_TYPES_DICT[self.DerivationType.GetStringSelection()]
         infos = {"type": selected}
         if selected == "Directly":
             infos["base_type"] = self.DirectlyBaseType.GetStringSelection()
@@ -795,7 +796,8 @@ class DataTypeEditor(EditorPanel):
                 control.SetBackgroundColour(wx.NullColour)
                 control.SetForegroundColour(wx.NullColour)
             elif isinstance(control, wx.TextCtrl):
-                value = control.GetValue()
+                value = control.GetValueStr() if isinstance(control, CustomIntCtrl) else \
+                        control.GetValue()
                 control.SetStyle(0, len(value), wx.TextAttr(wx.NullColour))
             elif isinstance(control, wx.gizmos.EditableListBox):
                 listctrl = control.GetListCtrl()

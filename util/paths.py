@@ -22,13 +22,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
+
+from __future__ import absolute_import
 import os
 import sys
+from builtins import str as text
 
 
 def AbsFile(file):
-    if isinstance(file, str):
-        file = unicode(file, sys.getfilesystemencoding())
+    # if isinstance(file, str):
+    #   file = text(file, sys.getfilesystemencoding())
     return file
 
 
@@ -43,6 +46,6 @@ def AbsNeighbourFile(file, *args):
 
 def AbsParentDir(file, level=1):
     path = AbsDir(file)
-    for i in range(0, level):
+    for dummy in range(0, level):
         path = os.path.dirname(path)
     return path

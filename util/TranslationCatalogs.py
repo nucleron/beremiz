@@ -22,15 +22,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import os
 
+from __future__ import absolute_import
+import os
+from six.moves import builtins
 import wx
 
-# Get the default language
-langid = wx.LANGUAGE_DEFAULT
 
-# Define locale for wx
-locale = wx.Locale(langid)
+locale = None
+
+
+builtins.__dict__['_'] = wx.GetTranslation
 
 
 def GetDomain(path):
@@ -50,9 +52,16 @@ def AddCatalog(locale_dir):
     if os.path.exists(locale_dir) and os.path.isdir(locale_dir):
         domain = GetDomain(locale_dir)
         if domain is not None:
+            global locale
+            if locale is None:
+                # Define locale for wx
+                wx.LogGui.EnableLogging(False)
+                locale = wx.Locale(wx.LANGUAGE_DEFAULT)
+                wx.LogGui.EnableLogging(True)
+
             locale.AddCatalogLookupPathPrefix(locale_dir)
             locale.AddCatalog(domain)
 
 
 def NoTranslate(x):
-        return x
+    return x

@@ -22,10 +22,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
+import re
+from functools import reduce
+from six.moves import xrange
+
 from plcopen import PLCOpenParser
 from plcopen.structures import *
-from types import *
-import re
+from plcopen.types_enums import *
+
 
 # Dictionary associating PLCOpen variable categories to the corresponding
 # IEC 61131-3 variable categories
@@ -59,7 +65,7 @@ def ReIndentText(text, nb_spaces):
             while lines[line_num][spaces] == " ":
                 spaces += 1
             indent = ""
-            for i in xrange(spaces, nb_spaces):
+            for dummy in xrange(spaces, nb_spaces):
                 indent += " "
             for line in lines:
                 if line != "":
@@ -99,7 +105,7 @@ class PLCGenException(Exception):
 # -------------------------------------------------------------------------------
 
 
-class ProgramGenerator:
+class ProgramGenerator(object):
 
     # Create a new PCL program generator
     def __init__(self, controler, project, errors, warnings):
@@ -131,7 +137,7 @@ class ProgramGenerator:
 
             # Getting datatype model from project
             datatype = self.Project.getdataType(datatype_name)
-            tagname = self.Controler.ComputeDataTypeName(datatype.getname())
+            tagname = ComputeDataTypeName(datatype.getname())
             datatype_def = [("  ", ()),
                             (datatype.getname(), (tagname, "name")),
                             (" : ", ())]
@@ -265,7 +271,7 @@ class ProgramGenerator:
 
     # Generate a configuration from its model
     def GenerateConfiguration(self, configuration):
-        tagname = self.Controler.ComputeConfigurationName(configuration.getname())
+        tagname = ComputeConfigurationName(configuration.getname())
         config = [("\nCONFIGURATION ", ()),
                   (configuration.getname(), (tagname, "name")),
                   ("\n", ())]
@@ -339,7 +345,7 @@ class ProgramGenerator:
 
     # Generate a resource from its model
     def GenerateResource(self, resource, config_name):
-        tagname = self.Controler.ComputeConfigurationResourceName(config_name, resource.getname())
+        tagname = ComputeConfigurationResourceName(config_name, resource.getname())
         resrce = [("\n  RESOURCE ", ()),
                   (resource.getname(), (tagname, "name")),
                   (" ON PLC\n", ())]
@@ -392,7 +398,6 @@ class ProgramGenerator:
             resrce += [("    TASK ", ()),
                        (task.getname(), (tagname, "task", task_number, "name")),
                        ("(", ())]
-            args = []
             single = task.getsingle()
             # Single argument if exists
             if single is not None:
@@ -496,16 +501,19 @@ class ProgramGenerator:
 [StepClass, TransitionClass, JumpStepClass,
  SelectionConvergenceClass, SelectionDivergenceClass,
  SimultaneousConvergenceClass, SimultaneousDivergenceClass] = [
-    PLCOpenParser.GetElementClass(instance_name, "sfcObjects")
-    for instance_name in [
-            "step", "transition", "jumpStep",
-            "selectionConvergence", "selectionDivergence",
-            "simultaneousConvergence", "simultaneousDivergence"]]
+     PLCOpenParser.GetElementClass(instance_name, "sfcObjects")
+     for instance_name in ["step",
+                           "transition",
+                           "jumpStep",
+                           "selectionConvergence",
+                           "selectionDivergence",
+                           "simultaneousConvergence",
+                           "simultaneousDivergence"]]
 TransitionObjClass = PLCOpenParser.GetElementClass("transition", "transitions")
 ActionObjClass = PLCOpenParser.GetElementClass("action", "actions")
 
 
-class PouProgramGenerator:
+class PouProgramGenerator(object):
 
     # Create a new POU program generator
     def __init__(self, parent, name, type, errors, warnings):
@@ -513,7 +521,7 @@ class PouProgramGenerator:
         self.ParentGenerator = parent
         self.Name = name
         self.Type = type
-        self.TagName = self.ParentGenerator.Controler.ComputePouName(name)
+        self.TagName = ComputePouName(name)
         self.CurrentIndent = "  "
         self.ReturnType = None
         self.Interface = []
@@ -546,8 +554,8 @@ class PouProgramGenerator:
 
     # Test if a variable has already been defined
     def IsAlreadyDefined(self, name):
-        for list_type, option, located, vars in self.Interface:
-            for var_type, var_name, var_address, var_initial in vars:
+        for _list_type, _option, _located, vars in self.Interface:
+            for _var_type, var_name, _var_address, _var_initial in vars:
                 if name == var_name:
                     return True
         return False
@@ -558,8 +566,8 @@ class PouProgramGenerator:
         current_type = None
         if len(parts) > 0:
             name = parts.pop(0)
-            for list_type, option, located, vars in self.Interface:
-                for var_type, var_name, var_address, var_initial in vars:
+            for _list_type, _option, _located, vars in self.Interface:
+                for var_type, var_name, _var_address, _var_initial in vars:
                     if name == var_name:
                         current_type = var_type
                         break
@@ -568,12 +576,12 @@ class PouProgramGenerator:
                 if blocktype is not None:
                     name = parts.pop(0)
                     current_type = None
-                    for var_name, var_type, var_modifier in blocktype["inputs"] + blocktype["outputs"]:
+                    for var_name, var_type, _var_modifier in blocktype["inputs"] + blocktype["outputs"]:
                         if var_name == name:
                             current_type = var_type
                             break
                 else:
-                    tagname = self.ParentGenerator.Controler.ComputeDataTypeName(current_type)
+                    tagname = ComputeDataTypeName(current_type)
                     infos = self.ParentGenerator.Controler.GetDataTypeInfos(tagname)
                     if infos is not None and infos["type"] == "Structure":
                         name = parts.pop(0)
@@ -634,11 +642,6 @@ class PouProgramGenerator:
     def ComputeInterface(self, pou):
         interface = pou.getinterface()
         if interface is not None:
-            body = pou.getbody()
-            if isinstance(body, ListType):
-                body = body[0]
-            body_content = body.getcontent()
-            body_type = body_content.getLocalTag()
             if self.Type == "FUNCTION":
                 returntype_content = interface.getreturnType()[0]
                 returntype_content_type = returntype_content.getLocalTag()
@@ -707,7 +710,7 @@ class PouProgramGenerator:
 
     def ComputeConnectionTypes(self, pou):
         body = pou.getbody()
-        if isinstance(body, ListType):
+        if isinstance(body, list):
             body = body[0]
         body_content = body.getcontent()
         body_type = body_content.getLocalTag()
@@ -841,10 +844,10 @@ class PouProgramGenerator:
             if body_type == "SFC":
                 previous_tagname = self.TagName
                 for action in pou.getactionList():
-                    self.TagName = self.ParentGenerator.Controler.ComputePouActionName(self.Name, action.getname())
+                    self.TagName = ComputePouActionName(self.Name, action.getname())
                     self.ComputeConnectionTypes(action)
                 for transition in pou.gettransitionList():
-                    self.TagName = self.ParentGenerator.Controler.ComputePouTransitionName(self.Name, transition.getname())
+                    self.TagName = ComputePouTransitionName(self.Name, transition.getname())
                     self.ComputeConnectionTypes(transition)
                 self.TagName = previous_tagname
 
@@ -856,7 +859,7 @@ class PouProgramGenerator:
                 for connection in self.ExtractRelatedConnections(variable.connectionPointOut):
                     self.ConnectionTypes[connection] = "BOOL"
             else:
-                for oname, otype, oqualifier in block_infos["outputs"]:
+                for oname, otype, _oqualifier in block_infos["outputs"]:
                     if output_name == oname:
                         if otype.startswith("ANY"):
                             if otype not in undefined:
@@ -871,7 +874,7 @@ class PouProgramGenerator:
                 for connection in self.ExtractRelatedConnections(variable.connectionPointIn):
                     self.ConnectionTypes[connection] = "BOOL"
             else:
-                for iname, itype, iqualifier in block_infos["inputs"]:
+                for iname, itype, _iqualifier in block_infos["inputs"]:
                     if input_name == iname:
                         connected = self.GetConnectedConnector(variable.connectionPointIn, body)
                         if itype.startswith("ANY"):
@@ -899,9 +902,48 @@ class PouProgramGenerator:
                 for connection in related:
                     self.ConnectionTypes[connection] = var_type
 
+    def GetUsedEno(self, body, connections):
+        """
+            Function checks whether value on given connection
+            comes from block, that has used EN input and
+            returns variable name for ENO output.
+
+            This is needed to avoid value propagation from blocks
+            with false signal on EN input.
+
+        :param body:
+            body of the block for that program is currently generated
+        :param connections:
+            connection, that's source is checked for EN/ENO usage
+        :return:
+            if EN/ENO are not used, then None is returned
+            Otherwise BOOL variable corresponding to ENO
+            output is returned.
+        """
+
+        if len(connections) != 1:
+            return None
+        ref_local_id = connections[0].getrefLocalId()
+        blk = body.getcontentInstance(ref_local_id)
+        if blk is None:
+            return None
+
+        if not hasattr(blk, "inputVariables"):
+            return None
+
+        for invar in blk.inputVariables.getvariable():
+            if invar.getformalParameter() == "EN":
+                if len(invar.getconnectionPointIn().getconnections()) > 0:
+                    if blk.getinstanceName() is None:
+                        var_name = "_TMP_%s%d_ENO" % (blk.gettypeName(), blk.getlocalId())
+                    else:
+                        var_name = "%s.ENO" % blk.getinstanceName()
+                    return var_name
+        return None
+
     def ComputeProgram(self, pou):
         body = pou.getbody()
-        if isinstance(body, ListType):
+        if isinstance(body, list):
             body = body[0]
         body_content = body.getcontent()
         body_type = body_content.getLocalTag()
@@ -909,7 +951,7 @@ class PouProgramGenerator:
             text = body_content.getanyText()
             self.ParentGenerator.GeneratePouProgramInText(text.upper())
             self.Program = [(ReIndentText(text, len(self.CurrentIndent)),
-                            (self.TagName, "body", len(self.CurrentIndent)))]
+                             (self.TagName, "body", len(self.CurrentIndent)))]
         elif body_type == "SFC":
             self.IndentRight()
             for instance in body.getcontentInstances():
@@ -957,11 +999,21 @@ class PouProgramGenerator:
                     if connections is not None:
                         expression = self.ComputeExpression(body, connections)
                         if expression is not None:
+                            eno_var = self.GetUsedEno(body, connections)
+                            if eno_var is not None:
+                                self.Program += [(self.CurrentIndent + "IF %s" % eno_var, ())]
+                                self.Program += [(" THEN\n  ", ())]
+                                self.IndentRight()
+
                             self.Program += [(self.CurrentIndent, ()),
                                              (instance.getexpression(), (self.TagName, "io_variable", instance.getlocalId(), "expression")),
                                              (" := ", ())]
                             self.Program += expression
                             self.Program += [(";\n", ())]
+
+                            if eno_var is not None:
+                                self.IndentLeft()
+                                self.Program += [(self.CurrentIndent + "END_IF;\n", ())]
                 elif isinstance(instance, BlockClass):
                     block_type = instance.gettypeName()
                     self.ParentGenerator.GeneratePouProgram(block_type)
@@ -974,8 +1026,8 @@ class PouProgramGenerator:
                             format(a1=block_type, a2=self.Name))
                     try:
                         self.GenerateBlock(instance, block_infos, body, None)
-                    except ValueError, e:
-                        raise PLCGenException(e.message)
+                    except ValueError as e:
+                        raise PLCGenException(str(e))
                 elif isinstance(instance, ConnectorClass):
                     connector = instance.getname()
                     if self.ComputedConnectors.get(connector, None):
@@ -999,7 +1051,7 @@ class PouProgramGenerator:
         uncomputed_index = range(len(paths))
         factorized_paths = []
         for num, path in enumerate(paths):
-            if type(path) == ListType:
+            if isinstance(path, list):
                 if len(path) > 1:
                     str_path = str(path[-1:])
                     same_paths.setdefault(str_path, [])
@@ -1022,7 +1074,23 @@ class PouProgramGenerator:
         return factorized_paths
 
     def GenerateBlock(self, block, block_infos, body, link, order=False, to_inout=False):
-        body_type = body.getcontent().getLocalTag()
+
+        def _GetBlockName(name, type):
+            """function returns name of function or function block instance"""
+            if name:
+                # function blocks
+                blockname = "{a1}({a2})".format(a1=name, a2=type)
+            else:
+                # functions
+                blockname = type
+            return blockname
+
+        def _RaiseUnconnectedInOutError(name, type, parameter, place):
+            blockname = _GetBlockName(name, type)
+            raise ValueError(
+                _("InOut variable {a1} in block {a2} in POU {a3} must be connected.").
+                format(a1=parameter, a2=blockname, a3=place))
+
         name = block.getinstanceName()
         type = block.gettypeName()
         executionOrderId = block.getexecutionOrderId()
@@ -1069,7 +1137,9 @@ class PouProgramGenerator:
                             if parameter in inout_variables:
                                 expression = self.ComputeExpression(body, connections, executionOrderId > 0, True)
                                 if expression is not None:
-                                    inout_variables[parameter] = value
+                                    inout_variables[parameter] = expression
+                                else:
+                                    _RaiseUnconnectedInOutError(name, type, parameter, self.Name)
                             else:
                                 expression = self.ComputeExpression(body, connections, executionOrderId > 0)
                             if expression is not None:
@@ -1090,7 +1160,7 @@ class PouProgramGenerator:
                             if variable.getformalParameter() == "":
                                 variable_name = "%s%d" % (type, block.getlocalId())
                             else:
-                                variable_name = "%s%d_%s" % (type, block.getlocalId(), parameter)
+                                variable_name = "_TMP_%s%d_%s" % (type, block.getlocalId(), parameter)
                             if self.Interface[-1][0] != "VAR" or self.Interface[-1][1] is not None or self.Interface[-1][2]:
                                 self.Interface.append(("VAR", None, False, []))
                             if variable.connectionPointOut in self.ConnectionTypes:
@@ -1133,6 +1203,8 @@ class PouProgramGenerator:
                             if expression is not None:
                                 vars.append([(parameter, input_info),
                                              (" := ", ())] + self.ExtractModifier(variable, expression, input_info))
+                            elif parameter in inout_variables:
+                                _RaiseUnconnectedInOutError(name, type, parameter, self.Name)
                 self.Program += [(self.CurrentIndent, ()),
                                  (name, (self.TagName, "block", block.getlocalId(), "name")),
                                  ("(", ())]
@@ -1169,15 +1241,21 @@ class PouProgramGenerator:
             if block_infos["type"] == "function":
                 output_info = (self.TagName, "block", block.getlocalId(), "output", output_idx)
                 if output_parameter in inout_variables:
-                    output_value = inout_variables[output_parameter]
+                    for variable in input_variables:
+                        if variable.getformalParameter() == output_parameter:
+                            connections = variable.connectionPointIn.getconnections()
+                            if connections is not None:
+                                expression = self.ComputeExpression(
+                                    body, connections, executionOrderId > 0, True)
+                                output_value = expression
+                                break
                 else:
                     if output_parameter == "":
                         output_name = "%s%d" % (type, block.getlocalId())
                     else:
-                        output_name = "%s%d_%s" % (type, block.getlocalId(), output_parameter)
+                        output_name = "_TMP_%s%d_%s" % (type, block.getlocalId(), output_parameter)
                     output_value = [(output_name, output_info)]
                 return self.ExtractModifier(output_variable, output_value, output_info)
-
             if block_infos["type"] == "functionBlock":
                 output_info = (self.TagName, "block", block.getlocalId(), "output", output_idx)
                 output_name = self.ExtractModifier(output_variable, [("%s.%s" % (name, output_parameter), output_info)], output_info)
@@ -1200,10 +1278,7 @@ class PouProgramGenerator:
         if link is not None:
             if output_parameter is None:
                 output_parameter = ""
-            if name:
-                blockname = "{a1}({a2})".format(a1=name, a2=type)
-            else:
-                blockname = type
+            blockname = _GetBlockName(name, type)
             raise ValueError(
                 _("No output {a1} variable found in block {a2} in POU {a3}. Connection must be broken").
                 format(a1=output_parameter, a2=blockname, a3=self.Name))
@@ -1229,8 +1304,8 @@ class PouProgramGenerator:
                         format(a1=block_type, a2=self.Name))
                 try:
                     paths.append(str(self.GenerateBlock(next, block_infos, body, connection, order, to_inout)))
-                except ValueError, e:
-                    raise PLCGenException(e.message)
+                except ValueError as e:
+                    raise PLCGenException(str(e))
             elif isinstance(next, ContinuationClass):
                 name = next.getname()
                 computed_value = self.ComputedConnectors.get(name, None)
@@ -1260,24 +1335,27 @@ class PouProgramGenerator:
                 contact_info = (self.TagName, "contact", next.getlocalId())
                 variable = str(self.ExtractModifier(next, [(next.getvariable(), contact_info + ("reference",))], contact_info))
                 result = self.GeneratePaths(next.connectionPointIn.getconnections(), body, order)
+                if len(result) == 0:
+                    raise PLCGenException(_("Contact \"{a1}\" in POU \"{a2}\" must be connected.").
+                                          format(a1=next.getvariable(), a2=self.Name))
                 if len(result) > 1:
                     factorized_paths = self.FactorizePaths(result)
                     if len(factorized_paths) > 1:
                         paths.append([variable, tuple(factorized_paths)])
                     else:
                         paths.append([variable] + factorized_paths)
-                elif type(result[0]) == ListType:
+                elif isinstance(result[0], list):
                     paths.append([variable] + result[0])
                 elif result[0] is not None:
                     paths.append([variable, result[0]])
                 else:
                     paths.append(variable)
             elif isinstance(next, CoilClass):
-                paths.append(str(self.GeneratePaths(next.connectionPointIn.getconnections(), body, order)))
+                paths.append(self.GeneratePaths(next.connectionPointIn.getconnections(), body, order))
         return paths
 
     def ComputePaths(self, paths, first=False):
-        if type(paths) == TupleType:
+        if isinstance(paths, tuple):
             if None in paths:
                 return [("TRUE", ())]
             else:
@@ -1286,7 +1364,7 @@ class PouProgramGenerator:
                     return JoinList([(" OR ", ())], vars)
                 else:
                     return [("(", ())] + JoinList([(" OR ", ())], vars) + [(")", ())]
-        elif type(paths) == ListType:
+        elif isinstance(paths, list):
             vars = [self.ComputePaths(path) for path in paths]
             return JoinList([(" AND ", ())], vars)
         elif paths is None:
@@ -1348,7 +1426,7 @@ class PouProgramGenerator:
             if connections is not None and len(connections) == 1:
                 instanceLocalId = connections[0].getrefLocalId()
                 body = pou.getbody()
-                if isinstance(body, ListType):
+                if isinstance(body, list):
                     body = body[0]
                 return body.getcontentInstance(instanceLocalId)
         return None
@@ -1360,7 +1438,7 @@ class PouProgramGenerator:
             if connections is not None and len(connections) == 1:
                 instanceLocalId = connections[0].getrefLocalId()
                 body = pou.getbody()
-                if isinstance(body, ListType):
+                if isinstance(body, list):
                     body = body[0]
                 instances.append(body.getcontentInstance(instanceLocalId))
         return instances
@@ -1381,7 +1459,7 @@ class PouProgramGenerator:
                 if connections is not None and len(connections) == 1:
                     instanceLocalId = connections[0].getrefLocalId()
                     body = pou.getbody()
-                    if isinstance(body, ListType):
+                    if isinstance(body, list):
                         body = body[0]
                     instance = body.getcontentInstance(instanceLocalId)
                     if isinstance(instance, TransitionClass):
@@ -1415,7 +1493,7 @@ class PouProgramGenerator:
             if connections is not None and len(connections) == 1:
                 instanceLocalId = connections[0].getrefLocalId()
                 body = pou.getbody()
-                if isinstance(body, ListType):
+                if isinstance(body, list):
                     body = body[0]
                 instance = body.getcontentInstance(instanceLocalId)
                 if isinstance(instance, TransitionClass):
@@ -1440,7 +1518,7 @@ class PouProgramGenerator:
         if connections is not None and len(connections) == 1:
             stepLocalId = connections[0].getrefLocalId()
             body = pou.getbody()
-            if isinstance(body, ListType):
+            if isinstance(body, list):
                 body = body[0]
             step = body.getcontentInstance(stepLocalId)
             self.GenerateSFCStep(step, pou)
@@ -1474,7 +1552,7 @@ class PouProgramGenerator:
             actionContent = pou.getaction(action_name)
             if actionContent is not None:
                 previous_tagname = self.TagName
-                self.TagName = self.ParentGenerator.Controler.ComputePouActionName(self.Name, action_name)
+                self.TagName = ComputePouActionName(self.Name, action_name)
                 self.ComputeProgram(actionContent)
                 self.SFCNetworks["Actions"][action_name] = (self.Program, (self.TagName, "name"))
                 self.Program = []
@@ -1487,7 +1565,7 @@ class PouProgramGenerator:
             if connections is not None and len(connections) == 1:
                 instanceLocalId = connections[0].getrefLocalId()
                 body = pou.getbody()
-                if isinstance(body, ListType):
+                if isinstance(body, list):
                     body = body[0]
                 instance = body.getcontentInstance(instanceLocalId)
                 if isinstance(instance, StepClass):
@@ -1517,7 +1595,7 @@ class PouProgramGenerator:
                 transitionType = transitionContent.getbodyType()
                 transitionBody = transitionContent.getbody()
                 previous_tagname = self.TagName
-                self.TagName = self.ParentGenerator.Controler.ComputePouTransitionName(self.Name, transitionValues["value"])
+                self.TagName = ComputePouTransitionName(self.Name, transitionValues["value"])
                 if transitionType == "IL":
                     transition_infos["content"] = [(":\n", ()),
                                                    (ReIndentText(transitionBody.getcontent().getanyText(), len(self.CurrentIndent)), (self.TagName, "body", len(self.CurrentIndent)))]
@@ -1542,7 +1620,7 @@ class PouProgramGenerator:
                 self.TagName = previous_tagname
             elif transitionValues["type"] == "connection":
                 body = pou.getbody()
-                if isinstance(body, ListType):
+                if isinstance(body, list):
                     body = body[0]
                 connections = transitionValues["value"].getconnections()
                 if connections is not None:
@@ -1634,7 +1712,7 @@ class PouProgramGenerator:
                     format(a1=transition_infos["content"], a2=self.Name))
             self.Program += transition_infos["content"]
             self.Program += [("%sEND_TRANSITION\n\n" % self.CurrentIndent, ())]
-            for [(step_name, step_infos)] in transition_infos["to"]:
+            for [(step_name, _step_infos)] in transition_infos["to"]:
                 self.ComputeSFCStep(step_name)
 
     def GenerateProgram(self, pou):
@@ -1653,7 +1731,7 @@ class PouProgramGenerator:
         if len(self.Program) == 0:
             raise PLCGenException(_("No body defined in \"%s\" POU") % self.Name)
         var_number = 0
-        for list_type, option, located, variables in self.Interface:
+        for list_type, option, _located, variables in self.Interface:
             variable_type = errorVarTypes.get(list_type, "var_local")
             program += [("  %s" % list_type, ())]
             if option is not None:

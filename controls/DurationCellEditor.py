@@ -22,6 +22,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
+from __future__ import absolute_import
 import wx
 
 from dialogs.DurationEditorDialog import DurationEditorDialog
@@ -34,7 +36,7 @@ class DurationCellControl(wx.PyControl):
     the DurationEditorDialog.
     '''
     def __init__(self, parent):
-        wx.Control.__init__(self, parent)
+        wx.PyControl.__init__(self, parent)
 
         main_sizer = wx.FlexGridSizer(cols=2, hgap=0, rows=1, vgap=0)
         main_sizer.AddGrowableCol(0)
@@ -142,4 +144,4 @@ class DurationCellEditor(wx.grid.PyGridCellEditor):
                                        wx.SIZE_ALLOW_MINUS_ONE)
 
     def Clone(self):
-        return DurationCellEditor(self.Table)
+        return DurationCellEditor(self.Table, self.Colname)

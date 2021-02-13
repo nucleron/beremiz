@@ -22,22 +22,34 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import Pyro
-import Pyro.core
-import Pyro.util
-from Pyro.errors import PyroError
+
+from __future__ import absolute_import
+from __future__ import print_function
 import traceback
 from time import sleep
 import copy
 import socket
 import os.path
 
-service_type = '_PYRO._tcp.local.'
-# this module attribute contains a list of DNS-SD (Zeroconf) service types
-# supported by this connector confnode.
-#
-# for connectors that do not support DNS-SD, this attribute can be omitted
-# or set to an empty list.
+import Pyro
+import Pyro.core
+import Pyro.util
+from Pyro.errors import PyroError
+
+import PSKManagement as PSK
+from connectors.PYRO.PSK_Adapter import setupPSKAdapter
+from runtime import PlcStatus
+
+
+def switch_pyro_adapter(use_ssl):
+    """
+    Reloads Pyro module with new settings.
+    This is workaround for Pyro, because it doesn't work with SSL wrapper.
+    """
+    # Pyro.config.PYRO_BROKEN_MSGWAITALL = use_ssl
+    reload(Pyro.protocol)
+    if use_ssl:
+        setupPSKAdapter()
 
 
 def PYRO_connector_factory(uri, confnodesroot):
@@ -46,65 +58,35 @@ def PYRO_connector_factory(uri, confnodesroot):
     """
     confnodesroot.logger.write(_("PYRO connecting to URI : %s\n") % uri)
 
-    servicetype, location = uri.split("://")
-    if servicetype == "PYROS":
-        schemename = "PYROLOCSSL"
-        # Protect against name->IP substitution in Pyro3
-        Pyro.config.PYRO_DNS_URI = True
-        # Beware Pyro lib need str path, not unicode
-        # don't rely on PYRO_STORAGE ! see documentation
-        Pyro.config.PYROSSL_CERTDIR = os.path.abspath(str(confnodesroot.ProjectPath) + '/certs')
-        if not os.path.exists(Pyro.config.PYROSSL_CERTDIR):
+    scheme, location = uri.split("://")
+    use_ssl = scheme == "PYROS"
+    switch_pyro_adapter(use_ssl)
+    if use_ssl:
+        schemename = "PYROLOCPSK"
+        url, ID = location.split('#')  # TODO fix exception when # not found
+        # load PSK from project
+        secpath = os.path.join(str(confnodesroot.ProjectPath), 'psk', ID+'.secret')
+        if not os.path.exists(secpath):
             confnodesroot.logger.write_error(
-                'Error : the directory %s is missing for SSL certificates (certs_dir).'
-                'Please fix it in your project.\n' % Pyro.config.PYROSSL_CERTDIR)
+                'Error: Pre-Shared-Key Secret in %s is missing!\n' % secpath)
             return None
-        else:
-            confnodesroot.logger.write(_("PYRO using certificates in '%s' \n")
-                                       % (Pyro.config.PYROSSL_CERTDIR))
-        Pyro.config.PYROSSL_CERT = "client.crt"
-        Pyro.config.PYROSSL_KEY = "client.key"
-
-        # Ugly Monkey Patching
-        def _gettimeout(self):
-            return self.timeout
-
-        def _settimeout(self, timeout):
-            self.timeout = timeout
-        from M2Crypto.SSL import Connection
-        Connection.timeout = None
-        Connection.gettimeout = _gettimeout
-        Connection.settimeout = _settimeout
-        # M2Crypto.SSL.Checker.WrongHost: Peer certificate commonName does not
-        # match host, expected 127.0.0.1, got server
-        Connection.clientPostConnectionCheck = None
+        secret = open(secpath).read().partition(':')[2].rstrip('\n\r')
+        Pyro.config.PYROPSK = (secret, ID)
+        # strip ID from URL, so that pyro can understand it.
+        location = url
     else:
         schemename = "PYROLOC"
-    if location.find(service_type) != -1:
-        try:
-            from util.Zeroconf import Zeroconf
-            r = Zeroconf()
-            i = r.getServiceInfo(service_type, location)
-            if i is None:
-                raise Exception("'%s' not found" % location)
-            ip = str(socket.inet_ntoa(i.getAddress()))
-            port = str(i.getPort())
-            newlocation = ip + ':' + port
-            confnodesroot.logger.write(_("'{a1}' is located at {a2}\n").format(a1=location, a2=newlocation))
-            location = newlocation
-            r.close()
-        except Exception, msg:
-            confnodesroot.logger.write_error(_("MDNS resolution failure for '%s'\n") % location)
-            confnodesroot.logger.write_error(traceback.format_exc())
-            return None
 
     # Try to get the proxy object
     try:
         RemotePLCObjectProxy = Pyro.core.getAttrProxyForURI(schemename + "://" + location + "/PLCObject")
-    except Exception, msg:
-        confnodesroot.logger.write_error(_("Connection to '%s' failed.\n") % location)
-        confnodesroot.logger.write_error(traceback.format_exc())
+    except Exception as e:
+        confnodesroot.logger.write_error(
+            _("Connection to {loc} failed with exception {ex}\n").format(
+                loc=location, ex=str(e)))
         return None
+
+    RemotePLCObjectProxy.adapter.setTimeout(60)
 
     def PyroCatcher(func, default=None):
         """
@@ -114,89 +96,48 @@ def PYRO_connector_factory(uri, confnodesroot):
         def catcher_func(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
-            except Pyro.errors.ConnectionClosedError, e:
-                confnodesroot.logger.write_error(_("Connection lost!\n"))
+            except Pyro.errors.ConnectionClosedError as e:
                 confnodesroot._SetConnector(None)
-            except Pyro.errors.ProtocolError, e:
+                confnodesroot.logger.write_error(_("Connection lost!\n"))
+            except Pyro.errors.ProtocolError as e:
                 confnodesroot.logger.write_error(_("Pyro exception: %s\n") % e)
-            except Exception, e:
+            except Exception as e:
                 # confnodesroot.logger.write_error(traceback.format_exc())
                 errmess = ''.join(Pyro.util.getPyroTraceback(e))
                 confnodesroot.logger.write_error(errmess + "\n")
-                print errmess
+                print(errmess)
                 confnodesroot._SetConnector(None)
             return default
         return catcher_func
 
     # Check connection is effective.
     # lambda is for getattr of GetPLCstatus to happen inside catcher
-    if PyroCatcher(lambda: RemotePLCObjectProxy.GetPLCstatus())() is None:
-        confnodesroot.logger.write_error(_("Cannot get PLC status - connection failed.\n"))
-        return None
+    IDPSK = PyroCatcher(RemotePLCObjectProxy.GetPLCID)()
+    if IDPSK is None:
+        confnodesroot.logger.write_warning(_("PLC did not provide identity and security infomation.\n"))
+    else:
+        ID, secret = IDPSK
+        PSK.UpdateID(confnodesroot.ProjectPath, ID, secret, uri)
+
+    _special_return_funcs = {
+        "StartPLC": False,
+        "GetTraceVariables": (PlcStatus.Broken, None),
+        "GetPLCstatus": (PlcStatus.Broken, None),
+        "RemoteExec": (-1, "RemoteExec script failed!")
+    }
 
     class PyroProxyProxy(object):
         """
         A proxy proxy class to handle Beremiz Pyro interface specific behavior.
         And to put Pyro exception catcher in between caller and Pyro proxy
         """
-        def __init__(self):
-            # for safe use in from debug thread, must create a copy
-            self.RemotePLCObjectProxyCopy = None
-
-        def GetPyroProxy(self):
-            """
-            This func returns the real Pyro Proxy.
-            Use this if you musn't keep reference to it.
-            """
-            return RemotePLCObjectProxy
-
-        def _PyroStartPLC(self, *args, **kwargs):
-            """
-            confnodesroot._connector.GetPyroProxy() is used
-            rather than RemotePLCObjectProxy because
-            object is recreated meanwhile,
-            so we must not keep ref to it here
-            """
-            current_status, log_count = confnodesroot._connector.GetPyroProxy().GetPLCstatus()
-            if current_status == "Dirty":
-                """
-                Some bad libs with static symbols may polute PLC
-                ask runtime to suicide and come back again
-                """
-                confnodesroot.logger.write(_("Force runtime reload\n"))
-                confnodesroot._connector.GetPyroProxy().ForceReload()
-                confnodesroot._Disconnect()
-                # let remote PLC time to resurect.(freeze app)
-                sleep(0.5)
-                confnodesroot._Connect()
-            self.RemotePLCObjectProxyCopy = copy.copy(confnodesroot._connector.GetPyroProxy())
-            return confnodesroot._connector.GetPyroProxy().StartPLC(*args, **kwargs)
-        StartPLC = PyroCatcher(_PyroStartPLC, False)
-
-        def _PyroGetTraceVariables(self):
-            """
-            for safe use in from debug thread, must use the copy
-            """
-            if self.RemotePLCObjectProxyCopy is None:
-                self.RemotePLCObjectProxyCopy = copy.copy(confnodesroot._connector.GetPyroProxy())
-            return self.RemotePLCObjectProxyCopy.GetTraceVariables()
-        GetTraceVariables = PyroCatcher(_PyroGetTraceVariables, ("Broken", None))
-
-        def _PyroGetPLCstatus(self):
-            return RemotePLCObjectProxy.GetPLCstatus()
-        GetPLCstatus = PyroCatcher(_PyroGetPLCstatus, ("Broken", None))
-
-        def _PyroRemoteExec(self, script, **kwargs):
-            return RemotePLCObjectProxy.RemoteExec(script, **kwargs)
-        RemoteExec = PyroCatcher(_PyroRemoteExec, (-1, "RemoteExec script failed!"))
-
         def __getattr__(self, attrName):
             member = self.__dict__.get(attrName, None)
             if member is None:
                 def my_local_func(*args, **kwargs):
                     return RemotePLCObjectProxy.__getattr__(attrName)(*args, **kwargs)
-                member = PyroCatcher(my_local_func, None)
+                member = PyroCatcher(my_local_func, _special_return_funcs.get(attrName, None))
                 self.__dict__[attrName] = member
             return member
 
-    return PyroProxyProxy()
+    return PyroProxyProxy
