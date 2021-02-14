@@ -16,3 +16,5 @@
 *.o
 *.py[ocd]
 *.so
+.ccls-cache/
+.pylint
