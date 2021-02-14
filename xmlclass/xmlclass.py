@@ -62,33 +62,28 @@ def NodeSetAttr(node, name, value):
 # Regular expression models for checking all kind of
 # string values defined in XML standard
 
-Name_model = re.compile(r"([a-zA-Z_\:][\w\.\-\:]*)$")
-Names_model = re.compile(r"([a-zA-Z_\:][\w\.\-\:]*(?: [a-zA-Z_\:][\w\.\-\:]*)*)$")
-NMToken_model = re.compile(r"([\w\.\-\:]*)$")
-NMTokens_model = re.compile(r"([\w\.\-\:]*(?: [\w\.\-\:]*)*)$")
-QName_model = re.compile(r"((?:[a-zA-Z_][\w]*:)?[a-zA-Z_][\w]*)$")
-QNames_model = re.compile(
-    r"((?:[a-zA-Z_][\w]*:)?[a-zA-Z_][\w]*(?: (?:[a-zA-Z_][\w]*:)?[a-zA-Z_][\w]*)*)$"
-)
-NCName_model = re.compile(r"([a-zA-Z_][\w]*)$")
-URI_model = re.compile(r"((?:htt(p|ps)://|/)?(?:[\w.-]*/?)*)$")
-LANGUAGE_model = re.compile(r"([a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*)$")
+Name_model = re.compile(r'([a-zA-Z_\:][\w\.\-\:]*)$')
+Names_model = re.compile(r'([a-zA-Z_\:][\w\.\-\:]*(?: [a-zA-Z_\:][\w\.\-\:]*)*)$')
+NMToken_model = re.compile(r'([\w\.\-\:]*)$')
+NMTokens_model = re.compile(r'([\w\.\-\:]*(?: [\w\.\-\:]*)*)$')
+QName_model = re.compile(r'((?:[a-zA-Z_][\w]*:)?[a-zA-Z_][\w]*)$')
+QNames_model = re.compile(r'((?:[a-zA-Z_][\w]*:)?[a-zA-Z_][\w]*(?: (?:[a-zA-Z_][\w]*:)?[a-zA-Z_][\w]*)*)$')
+NCName_model = re.compile(r'([a-zA-Z_][\w]*)$')
+URI_model = re.compile(r'((?:htt(p|ps)://|/)?(?:[\w.-]*/?)*)$')
+LANGUAGE_model = re.compile(r'([a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*)$')
 
 ONLY_ANNOTATION = re.compile(r"((?:annotation )?)")
 
 """
 Regular expression models for extracting dates and times from a string
 """
-time_model = re.compile(r"([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]*)?)(?:Z)?$")
-date_model = re.compile(
-    r"([0-9]{4})-([0-9]{2})-([0-9]{2})((?:[\-\+][0-9]{2}:[0-9]{2})|Z)?$"
-)
-datetime_model = re.compile(
-    r"([0-9]{4})-([0-9]{2})-([0-9]{2})[ T]([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]*)?)((?:[\-\+][0-9]{2}:[0-9]{2})|Z)?$"
-)
+time_model = re.compile(r'([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]*)?)(?:Z)?$')
+date_model = re.compile(r'([0-9]{4})-([0-9]{2})-([0-9]{2})((?:[\-\+][0-9]{2}:[0-9]{2})|Z)?$')
+datetime_model = re.compile(r'([0-9]{4})-([0-9]{2})-([0-9]{2})[ T]([0-9]{2}):([0-9]{2}):([0-9]{2}(?:\.[0-9]*)?)((?:[\-\+][0-9]{2}:[0-9]{2})|Z)?$')
 
 
 class xml_timezone(datetime.tzinfo):
+
     def SetOffset(self, offset):
         if offset == "Z":
             self.__offset = datetime.timedelta(minutes=0)
@@ -110,19 +105,8 @@ class xml_timezone(datetime.tzinfo):
 
 
 [
-    SYNTAXELEMENT,
-    SYNTAXATTRIBUTE,
-    SIMPLETYPE,
-    COMPLEXTYPE,
-    COMPILEDCOMPLEXTYPE,
-    ATTRIBUTESGROUP,
-    ELEMENTSGROUP,
-    ATTRIBUTE,
-    ELEMENT,
-    CHOICE,
-    ANY,
-    TAG,
-    CONSTRAINT,
+    SYNTAXELEMENT, SYNTAXATTRIBUTE, SIMPLETYPE, COMPLEXTYPE, COMPILEDCOMPLEXTYPE,
+    ATTRIBUTESGROUP, ELEMENTSGROUP, ATTRIBUTE, ELEMENT, CHOICE, ANY, TAG, CONSTRAINT,
 ] = range(13)
 
 
@@ -133,10 +117,8 @@ def NotSupportedYet(type):
     @param type: data type
     @return: function generated
     """
-
     def GetUnknownValue(attr):
-        raise ValueError('"%s" type isn\'t supported by "xmlclass" yet!' % type)
-
+        raise ValueError("\"%s\" type isn't supported by \"xmlclass\" yet!" % type)
     return GetUnknownValue
 
 
@@ -146,7 +128,7 @@ def getIndent(indent, balise):
     """
     first = indent * 2
     second = first + len(balise) + 1
-    return u"\t".expandtabs(first), u"\t".expandtabs(second)
+    return u'\t'.expandtabs(first), u'\t'.expandtabs(second)
 
 
 def GetAttributeValue(attr, extract=True):
@@ -162,9 +144,9 @@ def GetAttributeValue(attr, extract=True):
         return text(unescape(attr.childNodes[0].data))
     else:
         # content is a CDATA
-        txt = u""
+        txt = u''
         for node in attr.childNodes:
-            if not (node.nodeName == "#text" and node.data.strip() == u""):
+            if not (node.nodeName == "#text" and node.data.strip() == u''):
                 txt += text(unescape(node.data))
         return text
 
@@ -193,9 +175,9 @@ def GetToken(attr, extract=True):
     @param extract: attr is a tree node or not
     @return: data tokenized as string
     """
-    return " ".join(
-        [part for part in GetNormalizedString(attr, extract).split(" ") if part]
-    )
+    return " ".join([part for part in
+                     GetNormalizedString(attr, extract).split(" ")
+                     if part])
 
 
 def GetHexInteger(attr, extract=True):
@@ -210,16 +192,15 @@ def GetHexInteger(attr, extract=True):
     else:
         value = attr
     if len(value) % 2 != 0:
-        raise ValueError('"%s" isn\'t a valid hexadecimal integer!' % value)
+        raise ValueError("\"%s\" isn't a valid hexadecimal integer!" % value)
     try:
         return int(value, 16)
     except Exception:
-        raise ValueError('"%s" isn\'t a valid hexadecimal integer!' % value)
+        raise ValueError("\"%s\" isn't a valid hexadecimal integer!" % value)
 
 
-def GenerateIntegerExtraction(
-    minInclusive=None, maxInclusive=None, minExclusive=None, maxExclusive=None
-):
+def GenerateIntegerExtraction(minInclusive=None, maxInclusive=None,
+                              minExclusive=None, maxExclusive=None):
     """
     Function that generates an extraction function for integer defining min and
     max of integer value
@@ -229,7 +210,6 @@ def GenerateIntegerExtraction(
     @param maxExclusive: exclusive maximum
     @return: function generated
     """
-
     def GetInteger(attr, extract=True):
         """
         Function that extracts an integer from a tree node or a string
@@ -246,21 +226,20 @@ def GenerateIntegerExtraction(
             # TODO: permit to write value like 1E2
             value = int(value)
         except Exception:
-            raise ValueError('"%s" isn\'t a valid integer!' % value)
+            raise ValueError("\"%s\" isn't a valid integer!" % value)
         if minInclusive is not None and value < minInclusive:
-            raise ValueError(
-                '"%d" isn\'t greater or equal to %d!' % (value, minInclusive)
-            )
+            raise ValueError("\"%d\" isn't greater or equal to %d!" %
+                             (value, minInclusive))
         if maxInclusive is not None and value > maxInclusive:
-            raise ValueError(
-                '"%d" isn\'t lesser or equal to %d!' % (value, maxInclusive)
-            )
+            raise ValueError("\"%d\" isn't lesser or equal to %d!" %
+                             (value, maxInclusive))
         if minExclusive is not None and value <= minExclusive:
-            raise ValueError('"%d" isn\'t greater than %d!' % (value, minExclusive))
+            raise ValueError("\"%d\" isn't greater than %d!" %
+                             (value, minExclusive))
         if maxExclusive is not None and value >= maxExclusive:
-            raise ValueError('"%d" isn\'t lesser than %d!' % (value, maxExclusive))
+            raise ValueError("\"%d\" isn't lesser than %d!" %
+                             (value, maxExclusive))
         return value
-
     return GetInteger
 
 
@@ -288,8 +267,7 @@ def GenerateFloatExtraction(type, extra_values=None):
         try:
             return float(value)
         except Exception:
-            raise ValueError('"%s" isn\'t a valid %s!' % (value, type))
-
+            raise ValueError("\"%s\" isn't a valid %s!" % (value, type))
     return GetFloat
 
 
@@ -309,7 +287,7 @@ def GetBoolean(attr, extract=True):
     elif value == "false" or value == "0":
         return False
     else:
-        raise ValueError('"%s" isn\'t a valid boolean!' % value)
+        raise ValueError("\"%s\" isn't a valid boolean!" % value)
 
 
 def GetTime(attr, extract=True):
@@ -331,7 +309,7 @@ def GetTime(attr, extract=True):
         time_values.extend([int(seconds), int((seconds % 1) * 1000000)])
         return datetime.time(*time_values)
     else:
-        raise ValueError('"%s" isn\'t a valid time!' % value)
+        raise ValueError("\"%s\" isn't a valid time!" % value)
 
 
 def GetDate(attr, extract=True):
@@ -355,7 +333,7 @@ def GetDate(attr, extract=True):
             date_values.append(tz)
         return datetime.date(*date_values)
     else:
-        raise ValueError('"%s" isn\'t a valid date!' % value)
+        raise ValueError("\"%s\" isn't a valid date!" % value)
 
 
 def GetDateTime(attr, extract=True):
@@ -381,7 +359,7 @@ def GetDateTime(attr, extract=True):
             datetime_values.append(tz)
         return datetime.datetime(*datetime_values)
     else:
-        raise ValueError('"%s" isn\'t a valid datetime!' % value)
+        raise ValueError("\"%s\" isn't a valid datetime!" % value)
 
 
 def GenerateModelNameExtraction(type, model):
@@ -391,7 +369,6 @@ def GenerateModelNameExtraction(type, model):
     @param model: model that data must match
     @return: function generated
     """
-
     def GetModelName(attr, extract=True):
         """
         Function that extracts a string from a tree node or not and check that
@@ -406,9 +383,8 @@ def GenerateModelNameExtraction(type, model):
             value = attr
         result = model.match(value)
         if not result:
-            raise ValueError('"%s" isn\'t a valid %s!' % (value, type))
+            raise ValueError("\"%s\" isn't a valid %s!" % (value, type))
         return value
-
     return GetModelName
 
 
@@ -421,7 +397,6 @@ def GenerateLimitExtraction(min=None, max=None, unbounded=True):
     @param unbounded: value can be "unbounded" or not
     @return: function generated
     """
-
     def GetLimit(attr, extract=True):
         """
         Function that extracts a string from a tree node or not and check that
@@ -438,19 +413,18 @@ def GenerateLimitExtraction(min=None, max=None, unbounded=True):
             if unbounded:
                 return value
             else:
-                raise ValueError('Member limit can\'t be defined to "unbounded"!')
+                raise ValueError("Member limit can't be defined to \"unbounded\"!")
         try:
             limit = int(value)
         except Exception:
-            raise ValueError('"%s" isn\'t a valid value for this member limit!' % value)
+            raise ValueError("\"%s\" isn't a valid value for this member limit!" % value)
         if limit < 0:
             raise ValueError("Member limit can't be negative!")
         elif min is not None and limit < min:
-            raise ValueError('Member limit can\'t be lower than "%d"!' % min)
+            raise ValueError("Member limit can't be lower than \"%d\"!" % min)
         elif max is not None and limit > max:
-            raise ValueError('Member limit can\'t be upper than "%d"!' % max)
+            raise ValueError("Member limit can't be upper than \"%d\"!" % max)
         return limit
-
     return GetLimit
 
 
@@ -461,7 +435,6 @@ def GenerateEnumeratedExtraction(type, list):
     @param list: list of possible values
     @return: function generated
     """
-
     def GetEnumerated(attr, extract=True):
         """
         Function that extracts a string from a tree node or not and check that
@@ -477,8 +450,8 @@ def GenerateEnumeratedExtraction(type, list):
         if value in list:
             return value
         else:
-            raise ValueError('"%s" isn\'t a valid value for %s!' % (value, type))
-
+            raise ValueError(
+                "\"%s\" isn't a valid value for %s!" % (value, type))
     return GetEnumerated
 
 
@@ -507,7 +480,7 @@ def GetNamespaces(attr, extract=True):
                 if result is not None:
                     namespaces.append(item)
                 else:
-                    raise ValueError('"%s" isn\'t a valid value for namespace!' % value)
+                    raise ValueError("\"%s\" isn't a valid value for namespace!" % value)
     return namespaces
 
 
@@ -518,7 +491,6 @@ def GenerateGetList(type, list):
     @param list: list of possible values
     @return: function generated
     """
-
     def GetLists(attr, extract=True):
         """
         Function that extracts a list of values from a tree node or a string
@@ -541,10 +513,8 @@ def GenerateGetList(type, list):
                     values.append(item)
                 else:
                     raise ValueError(
-                        '"%s" isn\'t a valid value for %s!' % (value, type)
-                    )
+                        "\"%s\" isn't a valid value for %s!" % (value, type))
             return values
-
     return GetLists
 
 
@@ -556,7 +526,6 @@ def GenerateModelNameListExtraction(type, model):
     @param model: model that list elements must match
     @return: function generated
     """
-
     def GetModelNameList(attr, extract=True):
         """
         Function that extracts a list of string from a tree node or not and
@@ -575,13 +544,13 @@ def GenerateModelNameListExtraction(type, model):
             if result is not None:
                 values.append(item)
             else:
-                raise ValueError('"%s" isn\'t a valid value for %s!' % (value, type))
+                raise ValueError("\"%s\" isn't a valid value for %s!" % (value, type))
         return values
-
     return GetModelNameList
 
 
 def GenerateAnyInfos(infos):
+
     def GetTextElement(tree):
         if infos["namespace"][0] == "##any":
             return tree.xpath("p")[0]
@@ -607,16 +576,16 @@ def GenerateAnyInfos(infos):
         "extract": ExtractAny,
         "generate": GenerateAny,
         "initial": InitialAny,
-        "check": lambda x: isinstance(x, (string_types, etree.ElementBase)),
+        "check": lambda x: isinstance(x, (string_types, etree.ElementBase))
     }
 
 
 def GenerateTagInfos(infos):
     def ExtractTag(tree):
         if len(tree._attrs) > 0:
-            raise ValueError('"%s" musn\'t have attributes!' % infos["name"])
+            raise ValueError("\"%s\" musn't have attributes!" % infos["name"])
         if len(tree.childNodes) > 0:
-            raise ValueError('"%s" musn\'t have children!' % infos["name"])
+            raise ValueError("\"%s\" musn't have children!" % infos["name"])
         if infos["minOccurs"] == 0:
             return True
         else:
@@ -634,7 +603,7 @@ def GenerateTagInfos(infos):
         "extract": ExtractTag,
         "generate": GenerateTag,
         "initial": lambda: None,
-        "check": lambda x: x is None or infos["minOccurs"] == 0 and x,
+        "check": lambda x: x is None or infos["minOccurs"] == 0 and x
     }
 
 
@@ -650,23 +619,17 @@ def GetElementInitialValue(factory, infos):
     if infos["minOccurs"] == 1:
         element_name = factory.etreeNamespaceFormat % infos["name"]
         if infos["elmt_type"]["type"] == SIMPLETYPE:
-
             def initial_value():
                 value = factory.Parser.makeelement(element_name)
-                value.text = infos["elmt_type"]["generate"](
-                    infos["elmt_type"]["initial"]()
-                )
+                value.text = (infos["elmt_type"]["generate"](infos["elmt_type"]["initial"]()))
                 value._init_()
                 return value
-
         else:
-
             def initial_value():
                 value = infos["elmt_type"]["initial"]()
                 if infos["type"] != ANY:
                     DefaultElementClass.__setattr__(value, "tag", element_name)
                 return value
-
         return [initial_value() for dummy in xrange(infos["minOccurs"])]
     else:
         return []
@@ -693,18 +656,14 @@ def ComputeContentChoices(factory, name, infos):
             choice["name"] = "sequence"
             for sequence_element in choice["elements"]:
                 if sequence_element["type"] != CHOICE:
-                    element_infos = factory.ExtractTypeInfos(
-                        sequence_element["name"], name, sequence_element["elmt_type"]
-                    )
+                    element_infos = factory.ExtractTypeInfos(sequence_element["name"], name, sequence_element["elmt_type"])
                     if element_infos is not None:
                         sequence_element["elmt_type"] = element_infos
         elif choice["elmt_type"] == "tag":
             choice["elmt_type"] = GenerateTagInfos(choice)
             factory.AddToLookupClass(choice["name"], name, DefaultElementClass)
         else:
-            choice_infos = factory.ExtractTypeInfos(
-                choice["name"], name, choice["elmt_type"]
-            )
+            choice_infos = factory.ExtractTypeInfos(choice["name"], name, choice["elmt_type"])
             if choice_infos is not None:
                 choice["elmt_type"] = choice_infos
         choices.append((choice["name"], choice))
@@ -717,24 +676,17 @@ def GenerateContentInfos(factory, name, choices):
         if choice_name == "sequence":
             for element in infos["elements"]:
                 if element["type"] == CHOICE:
-                    element["elmt_type"] = GenerateContentInfos(
-                        factory, name, ComputeContentChoices(factory, name, element)
-                    )
+                    element["elmt_type"] = GenerateContentInfos(factory, name, ComputeContentChoices(factory, name, element))
                 elif element["name"] in choices_dict:
-                    raise ValueError(
-                        "'%s' element defined two times in choice" % choice_name
-                    )
+                    raise ValueError("'%s' element defined two times in choice" % choice_name)
                 else:
                     choices_dict[element["name"]] = infos
         else:
             if choice_name in choices_dict:
-                raise ValueError(
-                    "'%s' element defined two times in choice" % choice_name
-                )
+                raise ValueError("'%s' element defined two times in choice" % choice_name)
             choices_dict[choice_name] = infos
-    prefix = (
-        "%s:" % factory.TargetNamespace if factory.TargetNamespace is not None else ""
-    )
+    prefix = ("%s:" % factory.TargetNamespace
+              if factory.TargetNamespace is not None else "")
     choices_xpath = "|".join(map(lambda x: prefix + x, choices_dict.keys()))
 
     def GetContentInitial():
@@ -754,7 +706,6 @@ def GenerateContentInfos(factory, name, choices):
         "initial": GetContentInitial,
     }
 
-
 # -------------------------------------------------------------------------------
 #                           Structure extraction functions
 # -------------------------------------------------------------------------------
@@ -763,14 +714,15 @@ def GenerateContentInfos(factory, name, choices):
 def DecomposeQualifiedName(name):
     result = QName_model.match(name)
     if not result:
-        raise ValueError('"%s" isn\'t a valid QName value!' % name)
-    parts = result.groups()[0].split(":")
+        raise ValueError("\"%s\" isn't a valid QName value!" % name)
+    parts = result.groups()[0].split(':')
     if len(parts) == 1:
         return None, parts[0]
     return parts
 
 
-def GenerateElement(element_name, attributes, elements_model, accept_text=False):
+def GenerateElement(element_name, attributes, elements_model,
+                    accept_text=False):
     def ExtractElement(factory, node):
         attrs = factory.ExtractNodeAttrs(element_name, node, attributes)
         children_structure = ""
@@ -781,33 +733,25 @@ def GenerateElement(element_name, attributes, elements_model, accept_text=False)
                 children_structure += "%s " % childname
         result = elements_model.match(children_structure)
         if not result:
-            raise ValueError(
-                'Invalid structure for "%s" children!. First element invalid.'
-                % node.nodeName
-            )
+            raise ValueError("Invalid structure for \"%s\" children!. First element invalid." % node.nodeName)
         valid = result.groups()[0]
         if len(valid) < len(children_structure):
-            raise ValueError(
-                'Invalid structure for "%s" children!. Element number %d invalid.'
-                % (node.nodeName, len(valid.split(" ")) - 1)
-            )
+            raise ValueError("Invalid structure for \"%s\" children!. Element number %d invalid." % (node.nodeName, len(valid.split(" ")) - 1))
         for child in node.childNodes:
-            if child.nodeName != "#comment" and (
-                accept_text or child.nodeName != "#text"
-            ):
+            if child.nodeName != "#comment" and \
+               (accept_text or child.nodeName != "#text"):
                 if child.nodeName == "#text":
                     children.append(GetAttributeValue(node))
                 else:
                     namespace, childname = DecomposeQualifiedName(child.nodeName)
                     infos = factory.GetQualifiedNameInfos(childname, namespace)
                     if infos["type"] != SYNTAXELEMENT:
-                        raise ValueError('"%s" can\'t be a member child!' % childname)
+                        raise ValueError("\"%s\" can't be a member child!" % childname)
                     if element_name in infos["extract"]:
                         children.append(infos["extract"][element_name](factory, child))
                     else:
                         children.append(infos["extract"]["default"](factory, child))
         return node.nodeName, attrs, children
-
     return ExtractElement
 
 
@@ -869,9 +813,7 @@ class ClassFactory(object):
                         if element["name"] == parts[1]:
                             return element
             if not canbenone:
-                raise ValueError(
-                    'Unknown element "%s" for any defined namespaces!' % name
-                )
+                raise ValueError("Unknown element \"%s\" for any defined namespaces!" % name)
         elif namespace in self.Namespaces:
             if name in self.Namespaces[namespace]:
                 return self.Namespaces[namespace][name]
@@ -888,11 +830,9 @@ class ClassFactory(object):
                         if element["name"] == parts[1]:
                             return element
             if not canbenone:
-                raise ValueError(
-                    'Unknown element "%s" for namespace "%s"!' % (name, namespace)
-                )
+                raise ValueError("Unknown element \"%s\" for namespace \"%s\"!" % (name, namespace))
         elif not canbenone:
-            raise ValueError('Unknown namespace "%s"!' % namespace)
+            raise ValueError("Unknown namespace \"%s\"!" % namespace)
         return None
 
     def SplitQualifiedName(self, name, namespace=None, canbenone=False):
@@ -915,9 +855,7 @@ class ClassFactory(object):
                         if element["name"] == parts[1]:
                             return parts[1], parts[0]
             if not canbenone:
-                raise ValueError(
-                    'Unknown element "%s" for any defined namespaces!' % name
-                )
+                raise ValueError("Unknown element \"%s\" for any defined namespaces!" % name)
         elif namespace in self.Namespaces:
             if name in self.Namespaces[namespace]:
                 return name, None
@@ -934,11 +872,9 @@ class ClassFactory(object):
                         if element["name"] == parts[1]:
                             return parts[1], parts[0]
             if not canbenone:
-                raise ValueError(
-                    'Unknown element "%s" for namespace "%s"!' % (name, namespace)
-                )
+                raise ValueError("Unknown element \"%s\" for namespace \"%s\"!" % (name, namespace))
         elif not canbenone:
-            raise ValueError('Unknown namespace "%s"!' % namespace)
+            raise ValueError("Unknown namespace \"%s\"!" % namespace)
         return None, None
 
     def ExtractNodeAttrs(self, element_name, node, valid_attrs):
@@ -948,9 +884,9 @@ class ClassFactory(object):
             if name in valid_attrs:
                 infos = self.GetQualifiedNameInfos(name, namespace)
                 if infos["type"] != SYNTAXATTRIBUTE:
-                    raise ValueError('"%s" can\'t be a member attribute!' % name)
+                    raise ValueError("\"%s\" can't be a member attribute!" % name)
                 elif name in attrs:
-                    raise ValueError('"%s" attribute has been twice!' % name)
+                    raise ValueError("\"%s\" attribute has been twice!" % name)
                 elif element_name in infos["extract"]:
                     attrs[name] = infos["extract"][element_name](attr)
                 else:
@@ -961,27 +897,15 @@ class ClassFactory(object):
                 self.DefinedNamespaces[value] = name
                 self.NSMAP[name] = value
             else:
-                raise ValueError(
-                    'Invalid attribute "%s" for member "%s"!'
-                    % (qualified_name, node.nodeName)
-                )
+                raise ValueError("Invalid attribute \"%s\" for member \"%s\"!" % (qualified_name, node.nodeName))
         for attr in valid_attrs:
-            if (
-                attr not in attrs
-                and attr in self.Namespaces[self.SchemaNamespace]
-                and "default" in self.Namespaces[self.SchemaNamespace][attr]
-            ):
-                if (
-                    element_name
-                    in self.Namespaces[self.SchemaNamespace][attr]["default"]
-                ):
-                    default = self.Namespaces[self.SchemaNamespace][attr]["default"][
-                        element_name
-                    ]
+            if attr not in attrs and \
+               attr in self.Namespaces[self.SchemaNamespace] and \
+               "default" in self.Namespaces[self.SchemaNamespace][attr]:
+                if element_name in self.Namespaces[self.SchemaNamespace][attr]["default"]:
+                    default = self.Namespaces[self.SchemaNamespace][attr]["default"][element_name]
                 else:
-                    default = self.Namespaces[self.SchemaNamespace][attr]["default"][
-                        "default"
-                    ]
+                    default = self.Namespaces[self.SchemaNamespace][attr]["default"]["default"]
                 if default is not None:
                     attrs[attr] = default
         return attrs
@@ -995,7 +919,7 @@ class ClassFactory(object):
                 namespace, name = DecomposeQualifiedName(child_infos[0])
                 infos = self.GetQualifiedNameInfos(name, namespace)
                 if infos["type"] != SYNTAXELEMENT:
-                    raise ValueError('"%s" can\'t be a member child!' % name)
+                    raise ValueError("\"%s\" can't be a member child!" % name)
                 element = infos["reduce"](self, child_infos[1], child_infos[2])
                 if element is not None:
                     result.append(element)
@@ -1014,24 +938,20 @@ class ClassFactory(object):
         if typename not in self.XMLClassDefinitions:
             self.XMLClassDefinitions[typename] = infos
         else:
-            raise ValueError(
-                '"%s" class already defined. Choose another name!' % typename
-            )
+            raise ValueError("\"%s\" class already defined. Choose another name!" % typename)
 
     def ParseSchema(self):
         pass
 
     def AddEquivalentClass(self, name, base):
         if name != base:
-            equivalences = self.EquivalentClassesParent.setdefault(
-                self.etreeNamespaceFormat % base, {}
-            )
+            equivalences = self.EquivalentClassesParent.setdefault(self.etreeNamespaceFormat % base, {})
             equivalences[self.etreeNamespaceFormat % name] = True
 
     def AddDistinctionBetweenParentsInLookupClass(
-        self, lookup_classes, parent, typeinfos
-    ):
-        parent = self.etreeNamespaceFormat % parent if parent is not None else None
+            self, lookup_classes, parent, typeinfos):
+        parent = (self.etreeNamespaceFormat % parent
+                  if parent is not None else None)
         parent_class = lookup_classes.get(parent)
         if parent_class is not None:
             if isinstance(parent_class, list):
@@ -1052,17 +972,13 @@ class ClassFactory(object):
             self.ComputedClassesLookUp[lookup_name] = (typeinfos, parent)
         elif isinstance(lookup_classes, dict):
             self.AddDistinctionBetweenParentsInLookupClass(
-                lookup_classes, parent, typeinfos
-            )
+                lookup_classes, parent, typeinfos)
         else:
             lookup_classes = {
                 self.etreeNamespaceFormat % lookup_classes[1]
-                if lookup_classes[1] is not None
-                else None: lookup_classes[0]
-            }
+                if lookup_classes[1] is not None else None: lookup_classes[0]}
             self.AddDistinctionBetweenParentsInLookupClass(
-                lookup_classes, parent, typeinfos
-            )
+                lookup_classes, parent, typeinfos)
             self.ComputedClassesLookUp[lookup_name] = lookup_classes
 
     def ExtractTypeInfos(self, name, parent, typeinfos):
@@ -1094,14 +1010,9 @@ class ClassFactory(object):
             return typeinfos
 
     def GetEquivalentParents(self, parent):
-        return reduce(
-            lambda x, y: x + y,
-            [
-                [p] + self.GetEquivalentParents(p)
-                for p in self.EquivalentClassesParent.get(parent, {}).keys()
-            ],
-            [],
-        )
+        return reduce(lambda x, y: x + y,
+                      [[p] + self.GetEquivalentParents(p)
+                       for p in self.EquivalentClassesParent.get(parent, {}).keys()], [])
 
     def CreateClasses(self):
         """
@@ -1110,22 +1021,19 @@ class ClassFactory(object):
         self.ParseSchema()
         for name, infos in self.Namespaces[self.TargetNamespace].items():
             if infos["type"] == ELEMENT:
-                if (
-                    not isinstance(infos["elmt_type"], string_types)
-                    and infos["elmt_type"]["type"] == COMPLEXTYPE
-                ):
+                if not isinstance(infos["elmt_type"], string_types) and \
+                   infos["elmt_type"]["type"] == COMPLEXTYPE:
                     self.ComputeAfter.append((name, None, infos["elmt_type"], True))
                     while len(self.ComputeAfter) > 0:
                         result = self.CreateClass(*self.ComputeAfter.pop(0))
                         if result is not None and not isinstance(result, string_types):
-                            self.Namespaces[self.TargetNamespace][
-                                result["name"]
-                            ] = result
+                            self.Namespaces[self.TargetNamespace][result["name"]] = result
             elif infos["type"] == COMPLEXTYPE:
                 self.ComputeAfter.append((name, None, infos))
                 while len(self.ComputeAfter) > 0:
                     result = self.CreateClass(*self.ComputeAfter.pop(0))
-                    if result is not None and not isinstance(result, string_types):
+                    if result is not None and \
+                       not isinstance(result, string_types):
                         self.Namespaces[self.TargetNamespace][result["name"]] = result
             elif infos["type"] == ELEMENTSGROUP:
                 elements = []
@@ -1134,29 +1042,20 @@ class ClassFactory(object):
                 elif "choices" in infos:
                     elements = infos["choices"]
                 for element in elements:
-                    if (
-                        not isinstance(element["elmt_type"], string_types)
-                        and element["elmt_type"]["type"] == COMPLEXTYPE
-                    ):
-                        self.ComputeAfter.append(
-                            (element["name"], infos["name"], element["elmt_type"])
-                        )
+                    if not isinstance(element["elmt_type"], string_types) and \
+                       element["elmt_type"]["type"] == COMPLEXTYPE:
+                        self.ComputeAfter.append((element["name"], infos["name"], element["elmt_type"]))
                         while len(self.ComputeAfter) > 0:
                             result = self.CreateClass(*self.ComputeAfter.pop(0))
-                            if result is not None and not isinstance(
-                                result, string_types
-                            ):
-                                self.Namespaces[self.TargetNamespace][
-                                    result["name"]
-                                ] = result
+                            if result is not None and \
+                               not isinstance(result, string_types):
+                                self.Namespaces[self.TargetNamespace][result["name"]] = result
 
         for name, parents in self.ComputedClassesLookUp.iteritems():
             if isinstance(parents, dict):
                 computed_classes = parents.items()
             elif parents[1] is not None:
-                computed_classes = [
-                    (self.etreeNamespaceFormat % parents[1], parents[0])
-                ]
+                computed_classes = [(self.etreeNamespaceFormat % parents[1], parents[0])]
             else:
                 computed_classes = []
             for parent, computed_class in computed_classes:
@@ -1196,9 +1095,7 @@ class ClassFactory(object):
                         return classname
             elif result is not None:
                 if self.FileName is not None:
-                    classinfos["base"] = self.ComputedClasses[self.FileName].get(
-                        result["name"], None
-                    )
+                    classinfos["base"] = self.ComputedClasses[self.FileName].get(result["name"], None)
                     if classinfos["base"] is None:
                         for filename, classes in self.ComputedClasses.iteritems():
                             if filename != self.FileName:
@@ -1217,48 +1114,30 @@ class ClassFactory(object):
         self.AlreadyComputed[classname] = True
 
         for attribute in classinfos["attributes"]:
-            infos = self.ExtractTypeInfos(
-                attribute["name"], name, attribute["attr_type"]
-            )
+            infos = self.ExtractTypeInfos(attribute["name"], name, attribute["attr_type"])
             if infos is not None:
                 if infos["type"] != SIMPLETYPE:
-                    raise ValueError(
-                        '"%s" type is not a simple type!' % attribute["attr_type"]
-                    )
+                    raise ValueError("\"%s\" type is not a simple type!" % attribute["attr_type"])
                 attrname = attribute["name"]
                 if attribute["use"] == "optional":
-                    classmembers["add%s" % attrname] = generateAddMethod(
-                        attrname, self, attribute
-                    )
+                    classmembers["add%s" % attrname] = generateAddMethod(attrname, self, attribute)
                     classmembers["delete%s" % attrname] = generateDeleteMethod(attrname)
                 classmembers["set%s" % attrname] = generateSetMethod(attrname)
                 classmembers["get%s" % attrname] = generateGetMethod(attrname)
             else:
-                raise ValueError('"%s" type unrecognized!' % attribute["attr_type"])
+                raise ValueError("\"%s\" type unrecognized!" % attribute["attr_type"])
             attribute["attr_type"] = infos
 
         for element in classinfos["elements"]:
             if element["type"] == CHOICE:
                 elmtname = element["name"]
                 choices = ComputeContentChoices(self, name, element)
-                classmembers["get%schoices" % elmtname] = generateGetChoicesMethod(
-                    element["choices"]
-                )
+                classmembers["get%schoices" % elmtname] = generateGetChoicesMethod(element["choices"])
                 if element["maxOccurs"] == "unbounded" or element["maxOccurs"] > 1:
-                    classmembers[
-                        "append%sbytype" % elmtname
-                    ] = generateAppendChoiceByTypeMethod(
-                        element["maxOccurs"], self, element["choices"]
-                    )
-                    classmembers[
-                        "insert%sbytype" % elmtname
-                    ] = generateInsertChoiceByTypeMethod(
-                        element["maxOccurs"], self, element["choices"]
-                    )
+                    classmembers["append%sbytype" % elmtname] = generateAppendChoiceByTypeMethod(element["maxOccurs"], self, element["choices"])
+                    classmembers["insert%sbytype" % elmtname] = generateInsertChoiceByTypeMethod(element["maxOccurs"], self, element["choices"])
                 else:
-                    classmembers[
-                        "set%sbytype" % elmtname
-                    ] = generateSetChoiceByTypeMethod(self, element["choices"])
+                    classmembers["set%sbytype" % elmtname] = generateSetChoiceByTypeMethod(self, element["choices"])
                 infos = GenerateContentInfos(self, name, choices)
             elif element["type"] == ANY:
                 elmtname = element["name"] = "anyText"
@@ -1270,50 +1149,30 @@ class ClassFactory(object):
                     infos = GenerateTagInfos(element)
                     self.AddToLookupClass(element["name"], name, DefaultElementClass)
                 else:
-                    infos = self.ExtractTypeInfos(
-                        element["name"], name, element["elmt_type"]
-                    )
+                    infos = self.ExtractTypeInfos(element["name"], name, element["elmt_type"])
             if infos is not None:
                 element["elmt_type"] = infos
             if element["maxOccurs"] == "unbounded" or element["maxOccurs"] > 1:
-                classmembers["append%s" % elmtname] = generateAppendMethod(
-                    elmtname, element["maxOccurs"], self, element
-                )
-                classmembers["insert%s" % elmtname] = generateInsertMethod(
-                    elmtname, element["maxOccurs"], self, element
-                )
-                classmembers["remove%s" % elmtname] = generateRemoveMethod(
-                    elmtname, element["minOccurs"]
-                )
+                classmembers["append%s" % elmtname] = generateAppendMethod(elmtname, element["maxOccurs"], self, element)
+                classmembers["insert%s" % elmtname] = generateInsertMethod(elmtname, element["maxOccurs"], self, element)
+                classmembers["remove%s" % elmtname] = generateRemoveMethod(elmtname, element["minOccurs"])
                 classmembers["count%s" % elmtname] = generateCountMethod(elmtname)
             else:
                 if element["minOccurs"] == 0:
-                    classmembers["add%s" % elmtname] = generateAddMethod(
-                        elmtname, self, element
-                    )
+                    classmembers["add%s" % elmtname] = generateAddMethod(elmtname, self, element)
                     classmembers["delete%s" % elmtname] = generateDeleteMethod(elmtname)
             classmembers["set%s" % elmtname] = generateSetMethod(elmtname)
             classmembers["get%s" % elmtname] = generateGetMethod(elmtname)
 
         classmembers["_init_"] = generateInitMethod(self, classinfos)
         classmembers["StructurePattern"] = GetStructurePattern(classinfos)
-        classmembers["getElementAttributes"] = generateGetElementAttributes(
-            self, classinfos
-        )
+        classmembers["getElementAttributes"] = generateGetElementAttributes(self, classinfos)
         classmembers["getElementInfos"] = generateGetElementInfos(self, classinfos)
         classmembers["setElementValue"] = generateSetElementValue(self, classinfos)
 
         class_definition = type(str(name), bases, classmembers)
-        setattr(
-            class_definition,
-            "__getattr__",
-            generateGetattrMethod(self, class_definition, classinfos),
-        )
-        setattr(
-            class_definition,
-            "__setattr__",
-            generateSetattrMethod(self, class_definition, classinfos),
-        )
+        setattr(class_definition, "__getattr__", generateGetattrMethod(self, class_definition, classinfos))
+        setattr(class_definition, "__setattr__", generateSetattrMethod(self, class_definition, classinfos))
         class_infos = {
             "type": COMPILEDCOMPLEXTYPE,
             "name": classname,
@@ -1377,13 +1236,15 @@ def ComputeMultiplicity(name, infos):
         if infos["maxOccurs"] == "unbounded":
             return "(?:%s){%d,}" % (name, infos["minOccurs"])
         else:
-            return "(?:%s){%d,%d}" % (name, infos["minOccurs"], infos["maxOccurs"])
+            return "(?:%s){%d,%d}" % (name,
+                                      infos["minOccurs"],
+                                      infos["maxOccurs"])
 
 
 def GetStructurePattern(classinfos):
     base_structure_pattern = (
-        classinfos["base"].StructurePattern.pattern[:-1] if "base" in classinfos else ""
-    )
+        classinfos["base"].StructurePattern.pattern[:-1]
+        if "base" in classinfos else "")
     elements = []
     for element in classinfos["elements"]:
         if element["type"] == ANY:
@@ -1399,9 +1260,7 @@ def GetStructurePattern(classinfos):
                     structure = "%s " % infos["name"]
                 choices.append(ComputeMultiplicity(structure, infos))
             elements.append(ComputeMultiplicity("|".join(choices), element))
-        elif (
-            element["name"] == "content" and element["elmt_type"]["type"] == SIMPLETYPE
-        ):
+        elif element["name"] == "content" and element["elmt_type"]["type"] == SIMPLETYPE:
             elements.append("(?:#text |#cdata-section )?")
         else:
             elements.append(ComputeMultiplicity("%s " % element["name"], element))
@@ -1415,53 +1274,34 @@ def generateClassCreateFunction(factory, class_definition):
     """
     Method that generate the method for creating a class instance
     """
-
     def classCreatefunction():
         return factory.Parser.CreateElementFromClass(class_definition)
-
     return classCreatefunction
 
 
 def generateGetattrMethod(factory, class_definition, classinfos):
-    attributes = dict(
-        [
-            (attr["name"], attr)
-            for attr in classinfos["attributes"]
-            if attr["use"] != "prohibited"
-        ]
-    )
+    attributes = dict([(attr["name"], attr) for attr in classinfos["attributes"] if attr["use"] != "prohibited"])
     elements = dict([(element["name"], element) for element in classinfos["elements"]])
 
     def getattrMethod(self, name):
         if name in attributes:
             attribute_infos = attributes[name]
-            attribute_infos["attr_type"] = FindTypeInfos(
-                factory, attribute_infos["attr_type"]
-            )
+            attribute_infos["attr_type"] = FindTypeInfos(factory, attribute_infos["attr_type"])
             value = self.get(name)
             if value is not None:
                 return attribute_infos["attr_type"]["extract"](value, extract=False)
             elif "fixed" in attribute_infos:
-                return attribute_infos["attr_type"]["extract"](
-                    attribute_infos["fixed"], extract=False
-                )
+                return attribute_infos["attr_type"]["extract"](attribute_infos["fixed"], extract=False)
             elif "default" in attribute_infos:
-                return attribute_infos["attr_type"]["extract"](
-                    attribute_infos["default"], extract=False
-                )
+                return attribute_infos["attr_type"]["extract"](attribute_infos["default"], extract=False)
             return None
 
         elif name in elements:
             element_infos = elements[name]
-            element_infos["elmt_type"] = FindTypeInfos(
-                factory, element_infos["elmt_type"]
-            )
+            element_infos["elmt_type"] = FindTypeInfos(factory, element_infos["elmt_type"])
             if element_infos["type"] == CHOICE:
                 content = element_infos["elmt_type"]["choices_xpath"](self)
-                if (
-                    element_infos["maxOccurs"] == "unbounded"
-                    or element_infos["maxOccurs"] > 1
-                ):
+                if element_infos["maxOccurs"] == "unbounded" or element_infos["maxOccurs"] > 1:
                     return content
                 elif len(content) > 0:
                     return content[0]
@@ -1472,25 +1312,17 @@ def generateGetattrMethod(factory, class_definition, classinfos):
                 return element_infos["elmt_type"]["extract"](self.text, extract=False)
             else:
                 element_name = factory.etreeNamespaceFormat % name
-                if (
-                    element_infos["maxOccurs"] == "unbounded"
-                    or element_infos["maxOccurs"] > 1
-                ):
+                if element_infos["maxOccurs"] == "unbounded" or element_infos["maxOccurs"] > 1:
                     values = self.findall(element_name)
                     if element_infos["elmt_type"]["type"] == SIMPLETYPE:
-                        return map(
-                            lambda value: element_infos["elmt_type"]["extract"](
-                                value.text, extract=False
-                            ),
-                            values,
-                        )
+                        return map(lambda value:
+                                   element_infos["elmt_type"]["extract"](value.text, extract=False),
+                                   values)
                     return values
                 else:
                     value = self.find(element_name)
                     if element_infos["elmt_type"]["type"] == SIMPLETYPE:
-                        return element_infos["elmt_type"]["extract"](
-                            value.text, extract=False
-                        )
+                        return element_infos["elmt_type"]["extract"](value.text, extract=False)
                     return value
 
         elif "base" in classinfos:
@@ -1502,30 +1334,14 @@ def generateGetattrMethod(factory, class_definition, classinfos):
 
 
 def generateSetattrMethod(factory, class_definition, classinfos):
-    attributes = dict(
-        [
-            (attr["name"], attr)
-            for attr in classinfos["attributes"]
-            if attr["use"] != "prohibited"
-        ]
-    )
-    optional_attributes = dict(
-        [
-            (attr["name"], True)
-            for attr in classinfos["attributes"]
-            if attr["use"] == "optional"
-        ]
-    )
-    elements = OrderedDict(
-        [(element["name"], element) for element in classinfos["elements"]]
-    )
+    attributes = dict([(attr["name"], attr) for attr in classinfos["attributes"] if attr["use"] != "prohibited"])
+    optional_attributes = dict([(attr["name"], True) for attr in classinfos["attributes"] if attr["use"] == "optional"])
+    elements = OrderedDict([(element["name"], element) for element in classinfos["elements"]])
 
     def setattrMethod(self, name, value):
         if name in attributes:
             attribute_infos = attributes[name]
-            attribute_infos["attr_type"] = FindTypeInfos(
-                factory, attribute_infos["attr_type"]
-            )
+            attribute_infos["attr_type"] = FindTypeInfos(factory, attribute_infos["attr_type"])
             if optional_attributes.get(name, False):
                 default = attribute_infos.get("default", None)
                 if value is None or value == default:
@@ -1537,9 +1353,7 @@ def generateSetattrMethod(factory, class_definition, classinfos):
 
         elif name in elements:
             element_infos = elements[name]
-            element_infos["elmt_type"] = FindTypeInfos(
-                factory, element_infos["elmt_type"]
-            )
+            element_infos["elmt_type"] = FindTypeInfos(factory, element_infos["elmt_type"])
             if element_infos["type"] == ANY:
                 element_infos["elmt_type"]["generate"](self, value)
 
@@ -1547,16 +1361,11 @@ def generateSetattrMethod(factory, class_definition, classinfos):
                 self.text = element_infos["elmt_type"]["generate"](value)
 
             else:
-                prefix = (
-                    "%s:" % factory.TargetNamespace
-                    if factory.TargetNamespace is not None
-                    else ""
-                )
-                element_xpath = (
-                    prefix + name
-                    if name != "content"
-                    else elements["content"]["elmt_type"]["choices_xpath"].path
-                )
+                prefix = ("%s:" % factory.TargetNamespace
+                          if factory.TargetNamespace is not None else "")
+                element_xpath = (prefix + name
+                                 if name != "content"
+                                 else elements["content"]["elmt_type"]["choices_xpath"].path)
 
                 for element in self.xpath(element_xpath, namespaces=factory.NSMAP):
                     self.remove(element)
@@ -1564,22 +1373,13 @@ def generateSetattrMethod(factory, class_definition, classinfos):
                 if value is not None:
                     element_idx = elements.keys().index(name)
                     if element_idx > 0:
-                        previous_elements_xpath = "|".join(
-                            map(
-                                lambda x: prefix + x
-                                if x != "content"
-                                else elements["content"]["elmt_type"][
-                                    "choices_xpath"
-                                ].path,
-                                elements.keys()[:element_idx],
-                            )
-                        )
+                        previous_elements_xpath = "|".join(map(
+                            lambda x: prefix + x
+                            if x != "content"
+                            else elements["content"]["elmt_type"]["choices_xpath"].path,
+                            elements.keys()[:element_idx]))
 
-                        insertion_point = len(
-                            self.xpath(
-                                previous_elements_xpath, namespaces=factory.NSMAP
-                            )
-                        )
+                        insertion_point = len(self.xpath(previous_elements_xpath, namespaces=factory.NSMAP))
                     else:
                         insertion_point = 0
 
@@ -1588,12 +1388,8 @@ def generateSetattrMethod(factory, class_definition, classinfos):
 
                     for element in reversed(value):
                         if element_infos["elmt_type"]["type"] == SIMPLETYPE:
-                            tmp_element = factory.Parser.makeelement(
-                                factory.etreeNamespaceFormat % name
-                            )
-                            tmp_element.text = element_infos["elmt_type"]["generate"](
-                                element
-                            )
+                            tmp_element = factory.Parser.makeelement(factory.etreeNamespaceFormat % name)
+                            tmp_element.text = element_infos["elmt_type"]["generate"](element)
                             element = tmp_element
                         self.insert(insertion_point, element)
 
@@ -1601,9 +1397,7 @@ def generateSetattrMethod(factory, class_definition, classinfos):
             return classinfos["base"].__setattr__(self, name, value)
 
         else:
-            raise AttributeError(
-                "'%s' can't have an attribute '%s'." % (self.__class__.__name__, name)
-            )
+            raise AttributeError("'%s' can't have an attribute '%s'." % (self.__class__.__name__, name))
 
     return setattrMethod
 
@@ -1636,25 +1430,15 @@ def generateGetElementAttributes(factory, classinfos):
                 attr_params = {
                     "name": attr["name"],
                     "use": attr["use"],
-                    "type": gettypeinfos(
-                        attr["attr_type"]["basename"], attr["attr_type"]["facets"]
-                    ),
-                    "value": getattr(self, attr["name"], ""),
-                }
+                    "type": gettypeinfos(attr["attr_type"]["basename"], attr["attr_type"]["facets"]),
+                    "value": getattr(self, attr["name"], "")}
                 attr_list.append(attr_params)
         return attr_list
-
     return getElementAttributes
 
 
 def generateGetElementInfos(factory, classinfos):
-    attributes = dict(
-        [
-            (attr["name"], attr)
-            for attr in classinfos["attributes"]
-            if attr["use"] != "prohibited"
-        ]
-    )
+    attributes = dict([(attr["name"], attr) for attr in classinfos["attributes"] if attr["use"] != "prohibited"])
     elements = dict([(element["name"], element) for element in classinfos["elements"]])
 
     def getElementInfos(self, name, path=None, derived=False):
@@ -1667,24 +1451,18 @@ def generateGetElementInfos(factory, classinfos):
             if parts[0] in attributes:
                 if len(parts) != 1:
                     raise ValueError("Wrong path!")
-                attr_type = gettypeinfos(
-                    attributes[parts[0]]["attr_type"]["basename"],
-                    attributes[parts[0]]["attr_type"]["facets"],
-                )
+                attr_type = gettypeinfos(attributes[parts[0]]["attr_type"]["basename"],
+                                         attributes[parts[0]]["attr_type"]["facets"])
                 value = getattr(self, parts[0], "")
             elif parts[0] in elements:
                 if elements[parts[0]]["elmt_type"]["type"] == SIMPLETYPE:
                     if len(parts) != 1:
                         raise ValueError("Wrong path!")
-                    attr_type = gettypeinfos(
-                        elements[parts[0]]["elmt_type"]["basename"],
-                        elements[parts[0]]["elmt_type"]["facets"],
-                    )
+                    attr_type = gettypeinfos(elements[parts[0]]["elmt_type"]["basename"],
+                                             elements[parts[0]]["elmt_type"]["facets"])
                     value = getattr(self, parts[0], "")
                 elif parts[0] == "content":
-                    return self.content.getElementInfos(
-                        self.content.getLocalTag(), path
-                    )
+                    return self.content.getElementInfos(self.content.getLocalTag(), path)
                 else:
                     attr = getattr(self, parts[0], None)
                     if attr is None:
@@ -1704,62 +1482,36 @@ def generateGetElementInfos(factory, classinfos):
             if not derived:
                 children.extend(self.getElementAttributes())
             if "base" in classinfos:
-                children.extend(
-                    classinfos["base"].getElementInfos(self, name, derived=True)[
-                        "children"
-                    ]
-                )
+                children.extend(classinfos["base"].getElementInfos(self, name, derived=True)["children"])
             for element_name, element in elements.items():
                 if element["minOccurs"] == 0:
                     use = "optional"
                 if element_name == "content" and element["type"] == CHOICE:
-                    attr_type = [
-                        (choice["name"], None) for choice in element["choices"]
-                    ]
+                    attr_type = [(choice["name"], None) for choice in element["choices"]]
                     if self.content is None:
                         value = ""
                     else:
                         value = self.content.getLocalTag()
                         if self.content is not None:
-                            children.extend(
-                                self.content.getElementInfos(value)["children"]
-                            )
+                            children.extend(self.content.getElementInfos(value)["children"])
                 elif element["elmt_type"]["type"] == SIMPLETYPE:
-                    children.append(
-                        {
-                            "name": element_name,
-                            "require": element["minOccurs"] != 0,
-                            "type": gettypeinfos(
-                                element["elmt_type"]["basename"],
-                                element["elmt_type"]["facets"],
-                            ),
-                            "value": getattr(self, element_name, None),
-                        }
-                    )
+                    children.append({
+                        "name": element_name,
+                        "require": element["minOccurs"] != 0,
+                        "type": gettypeinfos(element["elmt_type"]["basename"],
+                                             element["elmt_type"]["facets"]),
+                        "value": getattr(self, element_name, None)})
                 else:
                     instance = getattr(self, element_name, None)
                     if instance is None:
                         instance = element["elmt_type"]["initial"]()
                     children.append(instance.getElementInfos(element_name))
-        return {
-            "name": name,
-            "type": attr_type,
-            "value": value,
-            "use": use,
-            "children": children,
-        }
-
+        return {"name": name, "type": attr_type, "value": value, "use": use, "children": children}
     return getElementInfos
 
 
 def generateSetElementValue(factory, classinfos):
-    attributes = dict(
-        [
-            (attr["name"], attr)
-            for attr in classinfos["attributes"]
-            if attr["use"] != "prohibited"
-        ]
-    )
+    attributes = dict([(attr["name"], attr) for attr in classinfos["attributes"] if attr["use"] != "prohibited"])
     elements = dict([(element["name"], element) for element in classinfos["elements"]])
 
     def setElementValue(self, path, value):
@@ -1772,21 +1524,13 @@ def generateSetElementValue(factory, classinfos):
                     setattr(self, parts[0], value)
                 elif attributes[parts[0]]["use"] == "optional" and value == "":
                     if "default" in attributes[parts[0]]:
-                        setattr(
-                            self,
-                            parts[0],
-                            attributes[parts[0]]["attr_type"]["extract"](
-                                attributes[parts[0]]["default"], False
-                            ),
-                        )
+                        setattr(self, parts[0],
+                                attributes[parts[0]]["attr_type"]["extract"](
+                                    attributes[parts[0]]["default"], False))
                     else:
                         setattr(self, parts[0], None)
                 else:
-                    setattr(
-                        self,
-                        parts[0],
-                        attributes[parts[0]]["attr_type"]["extract"](value, False),
-                    )
+                    setattr(self, parts[0], attributes[parts[0]]["attr_type"]["extract"](value, False))
             elif parts[0] in elements:
                 if elements[parts[0]]["elmt_type"]["type"] == SIMPLETYPE:
                     if len(parts) != 1:
@@ -1796,11 +1540,7 @@ def generateSetElementValue(factory, classinfos):
                     elif attributes[parts[0]]["minOccurs"] == 0 and value == "":
                         setattr(self, parts[0], None)
                     else:
-                        setattr(
-                            self,
-                            parts[0],
-                            elements[parts[0]]["elmt_type"]["extract"](value, False),
-                        )
+                        setattr(self, parts[0], elements[parts[0]]["elmt_type"]["extract"](value, False))
                 else:
                     instance = getattr(self, parts[0], None)
                     if instance is None and elements[parts[0]]["minOccurs"] == 0:
@@ -1821,10 +1561,9 @@ def generateSetElementValue(factory, classinfos):
                 if elements["content"]["minOccurs"] == 0:
                     self.setcontent([])
                 else:
-                    raise ValueError('"content" element is required!')
+                    raise ValueError("\"content\" element is required!")
             else:
                 self.setcontentbytype(value)
-
     return setElementValue
 
 
@@ -1839,32 +1578,24 @@ def generateInitMethod(factory, classinfos):
         for attribute in classinfos["attributes"]:
             attribute["attr_type"] = FindTypeInfos(factory, attribute["attr_type"])
             if attribute["use"] == "required":
-                self.set(
-                    attribute["name"],
-                    attribute["attr_type"]["generate"](
-                        attribute["attr_type"]["initial"]()
-                    ),
-                )
+                self.set(attribute["name"], attribute["attr_type"]["generate"](attribute["attr_type"]["initial"]()))
         for element in classinfos["elements"]:
             if element["type"] != CHOICE:
                 initial = GetElementInitialValue(factory, element)
                 if initial is not None:
                     map(self.append, initial)
-
     return initMethod
 
 
 def generateSetMethod(attr):
     def setMethod(self, value):
         setattr(self, attr, value)
-
     return setMethod
 
 
 def generateGetMethod(attr):
     def getMethod(self):
         return getattr(self, attr, None)
-
     return getMethod
 
 
@@ -1877,21 +1608,17 @@ def generateAddMethod(attr, factory, infos):
         elif infos["type"] == ELEMENT:
             infos["elmt_type"] = FindTypeInfos(factory, infos["elmt_type"])
             value = infos["elmt_type"]["initial"]()
-            DefaultElementClass.__setattr__(
-                value, "tag", factory.etreeNamespaceFormat % attr
-            )
+            DefaultElementClass.__setattr__(value, "tag", factory.etreeNamespaceFormat % attr)
             setattr(self, attr, value)
             value._init_()
         else:
             raise ValueError("Invalid class attribute!")
-
     return addMethod
 
 
 def generateDeleteMethod(attr):
     def deleteMethod(self):
         setattr(self, attr, None)
-
     return deleteMethod
 
 
@@ -1905,10 +1632,7 @@ def generateAppendMethod(attr, maxOccurs, factory, infos):
             else:
                 attr_list[-1].addnext(value)
         else:
-            raise ValueError(
-                'There can\'t be more than %d values in "%s"!' % (maxOccurs, attr)
-            )
-
+            raise ValueError("There can't be more than %d values in \"%s\"!" % (maxOccurs, attr))
     return appendMethod
 
 
@@ -1924,17 +1648,13 @@ def generateInsertMethod(attr, maxOccurs, factory, infos):
             else:
                 attr_list[min(index - 1, len(attr_list) - 1)].addnext(value)
         else:
-            raise ValueError(
-                'There can\'t be more than %d values in "%s"!' % (maxOccurs, attr)
-            )
-
+            raise ValueError("There can't be more than %d values in \"%s\"!" % (maxOccurs, attr))
     return insertMethod
 
 
 def generateGetChoicesMethod(choice_types):
     def getChoicesMethod(self):
         return [choice["name"] for choice in choice_types]
-
     return getChoicesMethod
 
 
@@ -1943,17 +1663,12 @@ def generateSetChoiceByTypeMethod(factory, choice_types):
 
     def setChoiceMethod(self, content_type):
         if content_type not in choices:
-            raise ValueError('Unknown "%s" choice type for "content"!' % content_type)
-        choices[content_type]["elmt_type"] = FindTypeInfos(
-            factory, choices[content_type]["elmt_type"]
-        )
+            raise ValueError("Unknown \"%s\" choice type for \"content\"!" % content_type)
+        choices[content_type]["elmt_type"] = FindTypeInfos(factory, choices[content_type]["elmt_type"])
         new_content = choices[content_type]["elmt_type"]["initial"]()
-        DefaultElementClass.__setattr__(
-            new_content, "tag", factory.etreeNamespaceFormat % content_type
-        )
+        DefaultElementClass.__setattr__(new_content, "tag", factory.etreeNamespaceFormat % content_type)
         self.content = new_content
         return new_content
-
     return setChoiceMethod
 
 
@@ -1962,22 +1677,15 @@ def generateAppendChoiceByTypeMethod(maxOccurs, factory, choice_types):
 
     def appendChoiceMethod(self, content_type):
         if content_type not in choices:
-            raise ValueError('Unknown "%s" choice type for "content"!' % content_type)
-        choices[content_type]["elmt_type"] = FindTypeInfos(
-            factory, choices[content_type]["elmt_type"]
-        )
+            raise ValueError("Unknown \"%s\" choice type for \"content\"!" % content_type)
+        choices[content_type]["elmt_type"] = FindTypeInfos(factory, choices[content_type]["elmt_type"])
         if maxOccurs == "unbounded" or len(self.content) < maxOccurs:
             new_element = choices[content_type]["elmt_type"]["initial"]()
-            DefaultElementClass.__setattr__(
-                new_element, "tag", factory.etreeNamespaceFormat % content_type
-            )
+            DefaultElementClass.__setattr__(new_element, "tag", factory.etreeNamespaceFormat % content_type)
             self.appendcontent(new_element)
             return new_element
         else:
-            raise ValueError(
-                'There can\'t be more than %d values in "content"!' % maxOccurs
-            )
-
+            raise ValueError("There can't be more than %d values in \"content\"!" % maxOccurs)
     return appendChoiceMethod
 
 
@@ -1986,22 +1694,15 @@ def generateInsertChoiceByTypeMethod(maxOccurs, factory, choice_types):
 
     def insertChoiceMethod(self, index, content_type):
         if content_type not in choices:
-            raise ValueError('Unknown "%s" choice type for "content"!' % content_type)
-        choices[type]["elmt_type"] = FindTypeInfos(
-            factory, choices[content_type]["elmt_type"]
-        )
+            raise ValueError("Unknown \"%s\" choice type for \"content\"!" % content_type)
+        choices[type]["elmt_type"] = FindTypeInfos(factory, choices[content_type]["elmt_type"])
         if maxOccurs == "unbounded" or len(self.content) < maxOccurs:
             new_element = choices[content_type]["elmt_type"]["initial"]()
-            DefaultElementClass.__setattr__(
-                new_element, "tag", factory.etreeNamespaceFormat % content_type
-            )
+            DefaultElementClass.__setattr__(new_element, "tag", factory.etreeNamespaceFormat % content_type)
             self.insertcontent(index, new_element)
             return new_element
         else:
-            raise ValueError(
-                'There can\'t be more than %d values in "content"!' % maxOccurs
-            )
-
+            raise ValueError("There can't be more than %d values in \"content\"!" % maxOccurs)
     return insertChoiceMethod
 
 
@@ -2011,17 +1712,13 @@ def generateRemoveMethod(attr, minOccurs):
         if len(attr_list) > minOccurs:
             self.remove(attr_list[index])
         else:
-            raise ValueError(
-                'There can\'t be less than %d values in "%s"!' % (minOccurs, attr)
-            )
-
+            raise ValueError("There can't be less than %d values in \"%s\"!" % (minOccurs, attr))
     return removeMethod
 
 
 def generateCountMethod(attr):
     def countMethod(self):
         return len(getattr(self, attr))
-
     return countMethod
 
 
@@ -2039,21 +1736,18 @@ class DefaultElementClass(etree.ElementBase):
         return etree.QName(self.tag).localname
 
     def tostring(self):
-        return NAMESPACE_PATTERN.sub(
-            "", etree.tostring(self, pretty_print=True, encoding="utf-8")
-        ).decode("utf-8")
+        return NAMESPACE_PATTERN.sub("", etree.tostring(self, pretty_print=True, encoding='utf-8')).decode('utf-8')
 
 
 class XMLElementClassLookUp(etree.PythonElementClassLookup):
+
     def __init__(self, classes, *args, **kwargs):
         etree.PythonElementClassLookup.__init__(self, *args, **kwargs)
         self.LookUpClasses = classes
         self.ElementTag = None
         self.ElementClass = None
 
-    def GetElementClass(
-        self, element_tag, parent_tag=None, default=DefaultElementClass
-    ):
+    def GetElementClass(self, element_tag, parent_tag=None, default=DefaultElementClass):
         element_class = self.LookUpClasses.get(element_tag, (default, None))
         if not isinstance(element_class, dict):
             if isinstance(element_class[0], string_types):
@@ -2117,12 +1811,11 @@ class XMLElementClassLookUp(etree.PythonElementClassLookup):
 
         parent = element.getparent()
         element_class = self.GetElementClass(
-            element.tag, parent.tag if parent is not None else None
-        )
+            element.tag, parent.tag if parent is not None else None)
         if isinstance(element_class, list):
-            children = "".join(
-                ["%s " % etree.QName(child.tag).localname for child in element]
-            )
+            children = "".join([
+                "%s " % etree.QName(child.tag).localname
+                for child in element])
             for possible_class in element_class:
                 if isinstance(possible_class, string_types):
                     possible_class = self.GetElementClass(possible_class)
@@ -2143,8 +1836,7 @@ class XMLClassParser(etree.XMLParser):
         if targetNamespace is not None:
             self.RootNSMAP = {
                 name if targetNamespace != uri else None: uri
-                for name, uri in namespaces.iteritems()
-            }
+                for name, uri in namespaces.iteritems()}
         else:
             self.RootNSMAP = namespaces
         self.BaseClass = base_class
@@ -2162,7 +1854,7 @@ class XMLClassParser(etree.XMLParser):
         return tree, None
 
     def Dumps(self, xml_obj):
-        return etree.tostring(xml_obj, encoding="utf-8")
+        return etree.tostring(xml_obj, encoding='utf-8')
 
     def Loads(self, xml_string):
         return etree.fromstring(xml_string, self)
@@ -2170,8 +1862,8 @@ class XMLClassParser(etree.XMLParser):
     def CreateRoot(self):
         if self.BaseClass is not None:
             root = self.makeelement(
-                self.DefaultNamespaceFormat % self.BaseClass[0], nsmap=self.RootNSMAP
-            )
+                self.DefaultNamespaceFormat % self.BaseClass[0],
+                nsmap=self.RootNSMAP)
             root._init_()
             return root
         return None
@@ -2180,10 +1872,8 @@ class XMLClassParser(etree.XMLParser):
         return self.ClassLookup.GetElementClass(
             self.DefaultNamespaceFormat % element_tag,
             self.DefaultNamespaceFormat % parent_tag
-            if parent_tag is not None
-            else parent_tag,
-            None,
-        )
+            if parent_tag is not None else parent_tag,
+            None)
 
     def CreateElement(self, element_tag, parent_tag=None, class_idx=None):
         """
@@ -2233,9 +1923,7 @@ class XMLClassParser(etree.XMLParser):
         self.ClassLookup.SetLookupResult(etag, element_class)
         new_element = self.makeelement(etag)
         self.ClassLookup.ResetLookupResult()
-        DefaultElementClass.__setattr__(
-            new_element, "tag", self.DefaultNamespaceFormat % element_tag
-        )
+        DefaultElementClass.__setattr__(new_element, "tag", self.DefaultNamespaceFormat % element_tag)
         new_element._init_()
         return new_element
 
@@ -2251,18 +1939,13 @@ def GenerateParser(factory, xsdstring):
     ComputedClasses = factory.CreateClasses()
     if factory.FileName is not None:
         ComputedClasses = ComputedClasses[factory.FileName]
-    BaseClass = [
-        (name, XSDclass)
-        for name, XSDclass in ComputedClasses.items()
-        if XSDclass.IsBaseClass
-    ]
+    BaseClass = [(name, XSDclass) for name, XSDclass in ComputedClasses.items() if XSDclass.IsBaseClass]
 
     parser.initMembers(
         factory.NSMAP,
         factory.etreeNamespaceFormat,
         BaseClass[0] if len(BaseClass) == 1 else None,
-        etree.XMLSchema(etree.fromstring(xsdstring)),
-    )
+        etree.XMLSchema(etree.fromstring(xsdstring)))
 
     class_lookup = XMLElementClassLookUp(factory.ComputedClassesLookUp)
     parser.set_element_class_lookup(class_lookup)

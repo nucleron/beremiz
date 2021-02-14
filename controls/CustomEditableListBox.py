@@ -25,10 +25,11 @@
 
 from __future__ import absolute_import
 import wx
-import wx.adv
+import wx.gizmos
 
 
-class CustomEditableListBox(wx.adv.EditableListBox):
+class CustomEditableListBox(wx.gizmos.EditableListBox):
+
     def __init__(self, *args, **kwargs):
         wx.gizmos.EditableListBox.__init__(self, *args, **kwargs)
 
@@ -38,12 +39,11 @@ class CustomEditableListBox(wx.adv.EditableListBox):
         listbox.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnLabelEndEdit)
 
         for button, tooltip, call_function in [
-            (self.GetEditButton(), _("Edit item"), "_OnEditButton"),
-            (self.GetNewButton(), _("New item"), "_OnNewButton"),
-            (self.GetDelButton(), _("Delete item"), "_OnDelButton"),
-            (self.GetUpButton(), _("Move up"), "_OnUpButton"),
-            (self.GetDownButton(), _("Move down"), "_OnDownButton"),
-        ]:
+                (self.GetEditButton(), _("Edit item"), "_OnEditButton"),
+                (self.GetNewButton(), _("New item"), "_OnNewButton"),
+                (self.GetDelButton(), _("Delete item"), "_OnDelButton"),
+                (self.GetUpButton(), _("Move up"), "_OnUpButton"),
+                (self.GetDownButton(), _("Move down"), "_OnDownButton")]:
             button.SetToolTipString(tooltip)
             button.Bind(wx.EVT_BUTTON, self.GetButtonPressedFunction(call_function))
 
@@ -71,7 +71,7 @@ class CustomEditableListBox(wx.adv.EditableListBox):
 
     def GetButtonPressedFunction(self, call_function):
         def OnButtonPressed(event):
-            if wx.Platform != "__WXMSW__" or not self.Editing:
+            if wx.Platform != '__WXMSW__' or not self.Editing:
                 func = getattr(self, call_function, None)
                 if func is not None:
                     func(event)
@@ -79,7 +79,6 @@ class CustomEditableListBox(wx.adv.EditableListBox):
                 else:
                     wx.CallAfter(self.EnsureCurrentItemVisible)
                     event.Skip()
-
         return OnButtonPressed
 
     def OnKeyDown(self, event):
