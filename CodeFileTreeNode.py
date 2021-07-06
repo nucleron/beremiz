@@ -207,6 +207,9 @@ class CodeFile(object):
                 variable.gettype(),
                 variable.getinitial())
                for variable in variables]
+        ret.extend([("On"+variable.getname()+"Change", "python_poll", "")
+                    for variable in variables
+                    if variable.getonchange()])
         return ret
 
     def CTNSearch(self, criteria):

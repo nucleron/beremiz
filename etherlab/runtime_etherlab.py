@@ -114,7 +114,6 @@ def KMSGPollThreadProc():
         time.sleep(0.5)
 
 
-# TODO : rename to match _runtime_{location}_extname_init() format
 def _runtime_etherlab_init():
     global KMSGPollThread, StopKMSGThread
     StopKMSGThread = False
@@ -122,7 +121,6 @@ def _runtime_etherlab_init():
     KMSGPollThread.start()
 
 
-# TODO : rename to match _runtime_{location}_extname_cleanup() format
 def _runtime_etherlab_cleanup():
     global KMSGPollThread, StopKMSGThread, SDOThread
     try:

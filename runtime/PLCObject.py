@@ -360,18 +360,8 @@ class PLCObject(object):
                 v = parent.python_runtime_vars["_"+name+"_pack"](t, value)
                 parent.python_runtime_vars["_PySafeSetPLCGlob_"+name](ctypes.byref(v))
 
-        class OnChangeStateClass(object):
-            def __getattr__(self, name):
-                u = parent.python_runtime_vars["_"+name+"_unpack"]
-                return type("changedesc",(),dict(
-                    count = parent.python_runtime_vars["_PyOnChangeCount_"+name].value,
-                    first = u(parent.python_runtime_vars["_PyOnChangeFirst_"+name]),
-                    last = u(parent.python_runtime_vars["_PyOnChangeLast_"+name])))
-
-
         self.python_runtime_vars.update({
             "PLCGlobals":     PLCSafeGlobals(),
-            "OnChange":       OnChangeStateClass(),
             "WorkingDir":     self.workingdir,
             "PLCObject":      self,
             "PLCBinary":      self.PLClibraryHandle,
@@ -450,7 +440,6 @@ class PLCObject(object):
 
             if cmd == "Activate":
                 self.PythonRuntimeCall("start")
-                self.PreStartPLC()
                 self.PythonThreadLoop()
                 self.PythonRuntimeCall("stop", reverse_order=True)
             else:  # "Finish"
@@ -462,7 +451,7 @@ class PLCObject(object):
         self.PythonThreadCond.notify()
         self.PythonThreadCondLock.release()
 
-    def _fail(self, msg):
+    def _fail(msg):
         self.LogMessage(0, msg)
         self.PLCStatus = PlcStatus.Broken
         self.StatusChange()
@@ -481,6 +470,8 @@ class PLCObject(object):
         if self.PLClibraryHandle is None:
             if not self.LoadPLC():
                 self._fail(_("Problem starting PLC : can't load PLC"))
+
+        self.PreStartPLC()
 
         if self.CurrentPLCFilename is not None and self.PLCStatus == PlcStatus.Stopped:
             c_argv = ctypes.c_char_p * len(self.argv)
@@ -555,15 +546,12 @@ class PLCObject(object):
             os.close(fd)
         self._init_blobs()
 
-    def BlobAsFile(self, blobID, newpath):
+    def _BlobAsFile(self, blobID, newpath):
         blob = self.blobs.pop(blobID, None)
 
         if blob is None:
             raise Exception(_("Missing data to create file: {}").format(newpath))
 
-        self._BlobAsFile(blob, newpath)
-
-    def _BlobAsFile(self, blob, newpath):
         fd, path, _md5sum = blob
         fobj = os.fdopen(fd)
         fobj.flush()
@@ -622,13 +610,13 @@ class PLCObject(object):
 
             try:
                 # Create new PLC file
-                self.BlobAsFile(plc_object, new_PLC_filename)
+                self._BlobAsFile(plc_object, new_PLC_filename)
 
                 # Then write the files
                 log = open(extra_files_log, "w")
                 for fname, blobID in extrafiles:
                     fpath = os.path.join(self.workingdir, fname)
-                    self.BlobAsFile(blobID, fpath)
+                    self._BlobAsFile(blobID, fpath)
                     log.write(fname+'\n')
 
                 # Store new PLC filename based on md5 key

@@ -97,8 +97,6 @@ class EtherlabLibrary(POULibrary):
         return ((["etherlab_ext"], [(Gen_etherlabfile_path, IECCFLAGS)], True), "",
                 ("runtime_etherlab.py", open(GetLocalPath("runtime_etherlab.py"))))
 
-                # TODO : rename to match runtime_{location}_extname.py format
-
 # --------------------------------------------------
 #                 Ethercat MASTER
 # --------------------------------------------------

@@ -77,7 +77,7 @@ def ConnectorFactory(uri, confnodesroot):
         # started on demand, listening on random port
         scheme = "PYRO"
         runtime_port = confnodesroot.AppFrame.StartLocalRuntime(
-            taskbaricon=True)
+            taskbaricon=False)
         uri = "PYROLOC://127.0.0.1:" + str(runtime_port)
 
     # commented code to enable for MDNS:// support

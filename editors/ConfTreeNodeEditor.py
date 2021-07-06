@@ -48,7 +48,7 @@ if wx.Platform == '__WXMSW__':
 else:
     faces = {
         'times': 'Times',
-        'mono':  'FreeMono',
+        'mono':  'Courier',
         'helv':  'Helvetica',
         'other': 'new century schoolbook',
         'size':  18,
