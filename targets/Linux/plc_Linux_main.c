@@ -17,9 +17,23 @@ long AtomicCompareExchange(long* atomicvar,long compared, long exchange)
 {
     return __sync_val_compare_and_swap(atomicvar, compared, exchange);
 }
+
+
 long long AtomicCompareExchange64(long long* atomicvar, long long compared, long long exchange)
 {
+#ifdef ATOMIC32CE 
+    static pthread_mutex_t atomic_compare_exchange_mutex = PTHREAD_MUTEX_INITIALIZER;
+    long long res;
+    pthread_mutex_lock(&atomic_compare_exchange_mutex);
+    res=*atomicvar;
+    if(*atomicvar == compared){
+        *atomicvar = exchange;
+    }
+    pthread_mutex_unlock(&atomic_compare_exchange_mutex);
+    return res;
+#else
     return __sync_val_compare_and_swap(atomicvar, compared, exchange);
+#endif
 }
 
 void PLC_GetTime(IEC_TIME *CURRENT_TIME)
