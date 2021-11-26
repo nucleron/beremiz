@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<BeremizRoot xmlns:xsd="http://www.w3.org/2001/XMLSchema" URI_location="PYRO://10.3.254.93:61194">
+  <TargetType>
+    <Linux CFLAGS="-DATOMIC32CE" Compiler="mipsel-linux-gnu-gcc" Linker="mipsel-linux-gnu-gcc"/>
+  </TargetType>
+</BeremizRoot>
