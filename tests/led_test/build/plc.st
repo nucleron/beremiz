@@ -1,0 +1,132 @@
+TYPE
+  LOGLEVEL : (CRITICAL, WARNING, INFO, DEBUG) := INFO;
+END_TYPE
+
+FUNCTION_BLOCK LOGGER
+  VAR_INPUT
+    TRIG : BOOL;
+    MSG : STRING;
+    LEVEL : LOGLEVEL := INFO;
+  END_VAR
+  VAR
+    TRIG0 : BOOL;
+  END_VAR
+
+  IF TRIG AND NOT TRIG0 THEN
+  {{
+   LogMessage(GetFbVar(LEVEL),(char*)GetFbVar(MSG, .body),GetFbVar(MSG, .len));
+  }}
+  END_IF;
+  TRIG0:=TRIG;
+END_FUNCTION_BLOCK
+
+
+
+FUNCTION_BLOCK python_eval
+  VAR_INPUT
+    TRIG : BOOL;
+    CODE : STRING;
+  END_VAR
+  VAR_OUTPUT
+    ACK : BOOL;
+    RESULT : STRING;
+  END_VAR
+  VAR
+    STATE : DWORD;
+    BUFFER : STRING;
+    PREBUFFER : STRING;
+    TRIGM1 : BOOL;
+    TRIGGED : BOOL;
+  END_VAR
+
+  {extern void __PythonEvalFB(int, PYTHON_EVAL*);__PythonEvalFB(0, data__);}
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK python_poll
+  VAR_INPUT
+    TRIG : BOOL;
+    CODE : STRING;
+  END_VAR
+  VAR_OUTPUT
+    ACK : BOOL;
+    RESULT : STRING;
+  END_VAR
+  VAR
+    STATE : DWORD;
+    BUFFER : STRING;
+    PREBUFFER : STRING;
+    TRIGM1 : BOOL;
+    TRIGGED : BOOL;
+  END_VAR
+
+  {extern void __PythonEvalFB(int, PYTHON_EVAL*);__PythonEvalFB(1,(PYTHON_EVAL*)(void*)data__);}
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK python_gear
+  VAR_INPUT
+    N : UINT;
+    TRIG : BOOL;
+    CODE : STRING;
+  END_VAR
+  VAR_OUTPUT
+    ACK : BOOL;
+    RESULT : STRING;
+  END_VAR
+  VAR
+    py_eval : python_eval;
+    COUNTER : UINT;
+    _TMP_ADD10_OUT : UINT;
+    _TMP_EQ13_OUT : BOOL;
+    _TMP_SEL15_OUT : UINT;
+    _TMP_AND7_OUT : BOOL;
+  END_VAR
+
+  _TMP_ADD10_OUT := ADD(COUNTER, 1);
+  _TMP_EQ13_OUT := EQ(N, _TMP_ADD10_OUT);
+  _TMP_SEL15_OUT := SEL(_TMP_EQ13_OUT, _TMP_ADD10_OUT, 0);
+  COUNTER := _TMP_SEL15_OUT;
+  _TMP_AND7_OUT := AND(_TMP_EQ13_OUT, TRIG);
+  py_eval(TRIG := _TMP_AND7_OUT, CODE := CODE);
+  ACK := py_eval.ACK;
+  RESULT := py_eval.RESULT;
+END_FUNCTION_BLOCK
+
+
+PROGRAM program0
+  VAR
+    PLC3_USO32_DigitalOUT_rel_1 AT %QW0.1.1.2 : WORD := 0;
+  END_VAR
+  VAR
+    Time_delay : TIME;
+  END_VAR
+  VAR
+    PLC3_CPU31_DigitalOUT_1 AT %QW0.1.3.256 : WORD := 0;
+    PLC3_CPU_Firmware AT %IW0.1.2.53252 : WORD;
+  END_VAR
+  VAR
+    TON1 : TON;
+    TON2 : TON;
+    _TMP_NOT3_OUT : BOOL;
+    _TMP_BOOL_TO_WORD6_OUT : WORD;
+    _TMP_NOT26_OUT : BOOL;
+    _TMP_BOOL_TO_WORD28_OUT : WORD;
+  END_VAR
+
+  TON2(IN := _TMP_NOT3_OUT, PT := Time_delay);
+  _TMP_NOT3_OUT := NOT(TON2.Q);
+  _TMP_BOOL_TO_WORD6_OUT := BOOL_TO_WORD(_TMP_NOT3_OUT);
+  PLC3_CPU31_DigitalOUT_1 := _TMP_BOOL_TO_WORD6_OUT;
+  TON1(IN := _TMP_NOT26_OUT, PT := Time_delay);
+  _TMP_NOT26_OUT := NOT(TON1.Q);
+  _TMP_BOOL_TO_WORD28_OUT := BOOL_TO_WORD(_TMP_NOT26_OUT);
+  PLC3_USO32_DigitalOUT_rel_1 := _TMP_BOOL_TO_WORD28_OUT;
+END_PROGRAM
+
+
+CONFIGURATION config
+
+  RESOURCE resource1 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION

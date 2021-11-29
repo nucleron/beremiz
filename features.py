@@ -19,6 +19,7 @@ catalog = [
     ('bacnet', _('Bacnet support'), _('Map located variables over Bacnet'), 'bacnet.bacnet.RootClass'),
     ('etherlab', _('EtherCAT master'), _('Map located variables over EtherCAT'), 'etherlab.etherlab.RootClass'),
     ('modbus', _('Modbus support'), _('Map located variables over Modbus'), 'modbus.modbus.RootClass'),
+    ('iec', _('IEC support'), _('Map located variables over IEC'), 'iec.iec.RootClass'),
     ('c_ext', _('C extension'), _('Add C code accessing located variables synchronously'), 'c_ext.CFile'),
     ('py_ext', _('Python file'), _('Add Python code executed asynchronously'), 'py_ext.PythonFile'),
     ('wxglade_hmi', _('WxGlade GUI'), _('Add a simple WxGlade based GUI.'), 'wxglade_hmi.WxGladeHMI'),

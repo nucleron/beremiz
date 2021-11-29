@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ModbusRTUclient xmlns:xsd="http://www.w3.org/2001/XMLSchema" Configuration_Name="Modbus RTU Client 0.1" Baud_Rate="115200" Serial_Port="/dev/ttyS4" Parity="none"/>
