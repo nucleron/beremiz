@@ -18,3 +18,4 @@
 *.so
 .ccls-cache/
 .pylint
+tests/*/build
